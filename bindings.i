@@ -3,7 +3,7 @@
 /* %feature("intern_function", "lispify"); */
 
 %insert("lisphead") %{
-(in-package :cl-alsamidi)
+(in-package :cl-alsaseq)
 %}
 
 /* %{ */
