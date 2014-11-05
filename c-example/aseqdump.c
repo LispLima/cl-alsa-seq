@@ -3,12 +3,8 @@
 #include <stdarg.h>
 #include <string.h>
 #include <signal.h>
-#include <getopt.h>
 #include <sys/poll.h>
 #include <alsa/asoundlib.h>
-#include "aconfig.h"
-#include "version.h"
-
 static snd_seq_t *seq;
 static int port_count;
 static volatile sig_atomic_t stop = 0;
