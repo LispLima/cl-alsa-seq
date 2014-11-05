@@ -27,6 +27,7 @@
 %include "/usr/include/alsa/mixer.h"
 /* %include "/usr/include/alsa/seq_event.h" */
 %include "/usr/include/alsa/seq.h"
+%include "/usr/include/alsa/mixer.h"
 %include "/usr/include/alsa/seqmid.h"
 %include "/usr/include/alsa/seq_midi_event.h"
 %include "/home/rick/midi-loops/alsa-utils-1.0.9/include/aconfig.h"
