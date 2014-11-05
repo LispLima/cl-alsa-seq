@@ -1,5 +1,5 @@
 ;;;; package.lisp
 
 (defpackage #:cl-alsaseq
-  (:use #:cl))
+  (:use #:cl #:cffi))
 

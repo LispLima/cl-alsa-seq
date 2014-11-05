@@ -111,19 +111,19 @@
   (obj :pointer)
   (val :pointer))
 
-(cffi:defcfun ("snd_mixer_elem_get_type" snd_mixer_elem_get_type) snd_mixer_elem_type_t
-  (obj :pointer))
+;; (cffi:defcfun ("snd_mixer_elem_get_type" snd_mixer_elem_get_type) snd_mixer_elem_type_t
+;;   (obj :pointer))
 
 (cffi:defcfun ("snd_mixer_class_register" snd_mixer_class_register) :int
   (class_ :pointer)
   (mixer :pointer))
 
-(cffi:defcfun ("snd_mixer_elem_new" snd_mixer_elem_new) :int
-  (elem :pointer)
-  (type snd_mixer_elem_type_t)
-  (compare_weight :int)
-  (private_data :pointer)
-  (private_free :pointer))
+;; (cffi:defcfun ("snd_mixer_elem_new" snd_mixer_elem_new) :int
+;;   (elem :pointer)
+;;   (type snd_mixer_elem_type_t)
+;;   (compare_weight :int)
+;;   (private_data :pointer)
+;;   (private_free :pointer))
 
 (cffi:defcfun ("snd_mixer_elem_add" snd_mixer_elem_add) :int
   (elem :pointer)
