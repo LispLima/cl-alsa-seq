@@ -21,7 +21,12 @@
                                       SND_SEQ_PORT_TYPE_APPLICATION)))
 
 
-(defun bork-everything ()
-  (let ((event  (foreign-alloc :pointer)))
-    (values (snd_seq_event_input (mem-ref seq :pointer) (mem-ref event :pointer))
-            event)))
+(defun midi-poll (my_port)
+  (let* ((npfds (snd_seq_poll_descriptors_count (mem-ref seq :pointer) POLLIN))
+         (pfds (foreign-alloc 'pollfd :count npfds))
+         (event (foreign-alloc :pointer)))
+    (snd_seq_poll_descriptors (mem-ref seq) pfds npfds POLLIN)
+    (if (> (poll pfds npfds 100000) 0)
+        (values (snd_seq_event_input (mem-ref seq :pointer)
+                                     (mem-ref event :pointer))
+                event))))

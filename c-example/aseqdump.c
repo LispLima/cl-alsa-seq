@@ -28,15 +28,12 @@ int create_port(void)
 
 int main(int argc, char *argv[])
 {
-  struct pollfd *pfds;
-  int npfds;
-  int err;
 
   init_seq();
 
   int my_port = create_port();
 
-  err = snd_seq_nonblock(seq, 1);
+  snd_seq_nonblock(seq, 1);
 	
   if (port_count > 0)
     printf("Waiting for data.");
@@ -45,30 +42,24 @@ int main(int argc, char *argv[])
            snd_seq_client_id(seq));
   printf(" Press Ctrl+C to end.\n");
   printf("Source_ Event_________________ Ch _Data__\n");
-	
 
+  struct pollfd *pfds;
+  int npfds;
   npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
   pfds = alloca(sizeof(*pfds) * npfds);
-  for (;;) {
-    snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
-    if (poll(pfds, npfds, 69) < 0)
-      break;
-    do {
-      snd_seq_event_t *event;
-      err = snd_seq_event_input(seq, &event);
-      if (err < 0) {
-        break;
-      }
-      if (event) {
-        snd_seq_ev_set_source(event, my_port);
-        snd_seq_ev_set_subs(event);
-        snd_seq_ev_set_direct(event);
-        snd_seq_event_output(seq, event);
-        snd_seq_drain_output(seq);
-      }
-    } while (err > 0);
+  snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
+  
+  snd_seq_event_t *event;
+  while(1) {
+    if ( poll(pfds, npfds, 100000) > 0 ) {
+      snd_seq_event_input(seq, &event);
+      snd_seq_ev_set_source(event, my_port);
+      snd_seq_ev_set_subs(event);
+      snd_seq_ev_set_direct(event);
+      snd_seq_event_output(seq, event);
+      snd_seq_drain_output(seq);
+    }
   }
-
   snd_seq_close(seq);
   return 0;
 }
