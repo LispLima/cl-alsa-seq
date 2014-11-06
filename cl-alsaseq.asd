@@ -1,12 +1,12 @@
 ;;;; cl-alsaseq.asd
 
-(asdf:defsystem #:cl-alsaseq
+(asdf:defsystem cl-alsaseq
   :serial t
-  :description "Describe cl-alsaseq here"
-  :author "Your Name <your.name@example.com>"
-  :license "Specify license here"
+  :description "CL bindings to alsa midi sequencer"
+  :author "Rick Venn <richard.venn@gmail.com>"
+  :license "GPL"
+  :depends-on (#:cffi)
   :components ((:file "package")
-               (:file "cl-alsaseq")
-               (:file "bindings"))
-  :depends-on (#:cffi))
+               (:file "bindings")
+               (:file "cl-alsaseq")))
 
