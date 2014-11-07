@@ -21,11 +21,13 @@
                                       SND_SEQ_PORT_TYPE_APPLICATION)))
 
 
-(defun midi-poll (my_port)
+;;This function missing some header stuff for the polling lib
+(defun midi-poll (my-port)
+  (declare (ignore my-port))
   (let* ((npfds (snd_seq_poll_descriptors_count (mem-ref seq :pointer) POLLIN))
-         (pfds (foreign-alloc 'pollfd :count npfds))
+         (pfds (foreign-alloc '(:struct pollfd) :count npfds))
          (event (foreign-alloc :pointer)))
-    (snd_seq_poll_descriptors (mem-ref seq) pfds npfds POLLIN)
+    (snd_seq_poll_descriptors (mem-ref seq :pointer) pfds npfds POLLIN)
     (if (> (poll pfds npfds 100000) 0)
         (values (snd_seq_event_input (mem-ref seq :pointer)
                                      (mem-ref event :pointer))
