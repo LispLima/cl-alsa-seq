@@ -23,7 +23,7 @@
 /* %include "cstring.i" */
 /* %include "signal.h" */
 /* %include "getopt.h" */
-%include "/usr/include/poll.h"
+%include "poll.h"
 %include "/usr/include/alsa/mixer.h"
 /* %include "/usr/include/alsa/seq_event.h" */
 %include "/usr/include/alsa/seq.h"

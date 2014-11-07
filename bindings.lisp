@@ -8,6 +8,18 @@
 
 
 
+(cl:defconstant _SYS_POLL_H 1)
+
+(cffi:defcstruct pollfd
+	(fd :int)
+	(events :short)
+	(revents :short))
+
+(cffi:defcfun ("poll" poll) :int
+  (__fds :pointer)
+  (__nfds :unsigned-long)
+  (__timeout :int))
+
 ;; (cffi:defcenum snd_mixer_elem_type_t
 ;; 	:SND_MIXER_ELEM_SIMPLE
 ;; 	(:SND_MIXER_ELEM_LAST #.SND_MIXER_ELEM_SIMPLE))
@@ -195,20 +207,19 @@
   (class_ :pointer)
   (compare :pointer))
 
-(cffi:defcenum snd_mixer_selem_channel_id_t
-	(:SND_MIXER_SCHN_UNKNOWN #.-1)
-	(:SND_MIXER_SCHN_FRONT_LEFT #.0)
-	:SND_MIXER_SCHN_FRONT_RIGHT
-	:SND_MIXER_SCHN_REAR_LEFT
-	:SND_MIXER_SCHN_REAR_RIGHT
-	:SND_MIXER_SCHN_FRONT_CENTER
-	:SND_MIXER_SCHN_WOOFER
-	:SND_MIXER_SCHN_SIDE_LEFT
-	:SND_MIXER_SCHN_SIDE_RIGHT
-	:SND_MIXER_SCHN_REAR_CENTER
-	(:SND_MIXER_SCHN_LAST #.31)
-	;; (:SND_MIXER_SCHN_MONO #.SND_MIXER_SCHN_FRONT_LEFT)
-        )
+;; (cffi:defcenum snd_mixer_selem_channel_id_t
+;; 	(:SND_MIXER_SCHN_UNKNOWN #.-1)
+;; 	(:SND_MIXER_SCHN_FRONT_LEFT #.0)
+;; 	:SND_MIXER_SCHN_FRONT_RIGHT
+;; 	:SND_MIXER_SCHN_REAR_LEFT
+;; 	:SND_MIXER_SCHN_REAR_RIGHT
+;; 	:SND_MIXER_SCHN_FRONT_CENTER
+;; 	:SND_MIXER_SCHN_WOOFER
+;; 	:SND_MIXER_SCHN_SIDE_LEFT
+;; 	:SND_MIXER_SCHN_SIDE_RIGHT
+;; 	:SND_MIXER_SCHN_REAR_CENTER
+;; 	(:SND_MIXER_SCHN_LAST #.31)
+;; 	(:SND_MIXER_SCHN_MONO #.SND_MIXER_SCHN_FRONT_LEFT))
 
 (cffi:defcenum snd_mixer_selem_regopt_abstract
 	(:SND_MIXER_SABSTRACT_NONE #.0)
@@ -221,274 +232,274 @@
 	(playback_pcm :pointer)
 	(capture_pcm :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_channel_name" snd_mixer_selem_channel_name) :string
-  (channel snd_mixer_selem_channel_id_t))
+;; (cffi:defcfun ("snd_mixer_selem_channel_name" snd_mixer_selem_channel_name) :string
+;;   (channel snd_mixer_selem_channel_id_t))
 
-(cffi:defcfun ("snd_mixer_selem_register" snd_mixer_selem_register) :int
-  (mixer :pointer)
-  (options :pointer)
-  (classp :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_register" snd_mixer_selem_register) :int
+;;   (mixer :pointer)
+;;   (options :pointer)
+;;   (classp :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_get_id" snd_mixer_selem_get_id) :void
-  (element :pointer)
-  (id :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_get_id" snd_mixer_selem_get_id) :void
+;;   (element :pointer)
+;;   (id :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_get_name" snd_mixer_selem_get_name) :string
-  (elem :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_get_name" snd_mixer_selem_get_name) :string
+;;   (elem :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_get_index" snd_mixer_selem_get_index) :unsigned-int
-  (elem :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_get_index" snd_mixer_selem_get_index) :unsigned-int
+;;   (elem :pointer))
 
-(cffi:defcfun ("snd_mixer_find_selem" snd_mixer_find_selem) :pointer
-  (mixer :pointer)
-  (id :pointer))
+;; (cffi:defcfun ("snd_mixer_find_selem" snd_mixer_find_selem) :pointer
+;;   (mixer :pointer)
+;;   (id :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_is_active" snd_mixer_selem_is_active) :int
-  (elem :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_is_active" snd_mixer_selem_is_active) :int
+;;   (elem :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_is_playback_mono" snd_mixer_selem_is_playback_mono) :int
-  (elem :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_is_playback_mono" snd_mixer_selem_is_playback_mono) :int
+;;   (elem :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_has_playback_channel" snd_mixer_selem_has_playback_channel) :int
-  (obj :pointer)
-  (channel snd_mixer_selem_channel_id_t))
+;; (cffi:defcfun ("snd_mixer_selem_has_playback_channel" snd_mixer_selem_has_playback_channel) :int
+;;   (obj :pointer)
+;;   (channel snd_mixer_selem_channel_id_t))
 
-(cffi:defcfun ("snd_mixer_selem_is_capture_mono" snd_mixer_selem_is_capture_mono) :int
-  (elem :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_is_capture_mono" snd_mixer_selem_is_capture_mono) :int
+;;   (elem :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_has_capture_channel" snd_mixer_selem_has_capture_channel) :int
-  (obj :pointer)
-  (channel snd_mixer_selem_channel_id_t))
+;; (cffi:defcfun ("snd_mixer_selem_has_capture_channel" snd_mixer_selem_has_capture_channel) :int
+;;   (obj :pointer)
+;;   (channel snd_mixer_selem_channel_id_t))
 
-(cffi:defcfun ("snd_mixer_selem_get_capture_group" snd_mixer_selem_get_capture_group) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_common_volume" snd_mixer_selem_has_common_volume) :int
-  (elem :pointer))
+;; (cffi:defcfun ("snd_mixer_selem_get_capture_group" snd_mixer_selem_get_capture_group) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_common_volume" snd_mixer_selem_has_common_volume) :int
+;;   (elem :pointer))
 
-(cffi:defcfun ("snd_mixer_selem_has_playback_volume" snd_mixer_selem_has_playback_volume) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_playback_volume_joined" snd_mixer_selem_has_playback_volume_joined) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_capture_volume" snd_mixer_selem_has_capture_volume) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_capture_volume_joined" snd_mixer_selem_has_capture_volume_joined) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_common_switch" snd_mixer_selem_has_common_switch) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_playback_switch" snd_mixer_selem_has_playback_switch) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_playback_switch_joined" snd_mixer_selem_has_playback_switch_joined) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_capture_switch" snd_mixer_selem_has_capture_switch) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_capture_switch_joined" snd_mixer_selem_has_capture_switch_joined) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_has_capture_switch_exclusive" snd_mixer_selem_has_capture_switch_exclusive) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_ask_playback_vol_dB" snd_mixer_selem_ask_playback_vol_dB) :int
-  (elem :pointer)
-  (value :long)
-  (dBvalue :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_ask_capture_vol_dB" snd_mixer_selem_ask_capture_vol_dB) :int
-  (elem :pointer)
-  (value :long)
-  (dBvalue :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_ask_playback_dB_vol" snd_mixer_selem_ask_playback_dB_vol) :int
-  (elem :pointer)
-  (dBvalue :long)
-  (dir :int)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_ask_capture_dB_vol" snd_mixer_selem_ask_capture_dB_vol) :int
-  (elem :pointer)
-  (dBvalue :long)
-  (dir :int)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_playback_volume" snd_mixer_selem_get_playback_volume) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_capture_volume" snd_mixer_selem_get_capture_volume) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_playback_dB" snd_mixer_selem_get_playback_dB) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_capture_dB" snd_mixer_selem_get_capture_dB) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_playback_switch" snd_mixer_selem_get_playback_switch) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_capture_switch" snd_mixer_selem_get_capture_switch) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_set_playback_volume" snd_mixer_selem_set_playback_volume) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :long))
-
-(cffi:defcfun ("snd_mixer_selem_set_capture_volume" snd_mixer_selem_set_capture_volume) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :long))
-
-(cffi:defcfun ("snd_mixer_selem_set_playback_dB" snd_mixer_selem_set_playback_dB) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :long)
-  (dir :int))
-
-(cffi:defcfun ("snd_mixer_selem_set_capture_dB" snd_mixer_selem_set_capture_dB) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :long)
-  (dir :int))
-
-(cffi:defcfun ("snd_mixer_selem_set_playback_volume_all" snd_mixer_selem_set_playback_volume_all) :int
-  (elem :pointer)
-  (value :long))
-
-(cffi:defcfun ("snd_mixer_selem_set_capture_volume_all" snd_mixer_selem_set_capture_volume_all) :int
-  (elem :pointer)
-  (value :long))
-
-(cffi:defcfun ("snd_mixer_selem_set_playback_dB_all" snd_mixer_selem_set_playback_dB_all) :int
-  (elem :pointer)
-  (value :long)
-  (dir :int))
-
-(cffi:defcfun ("snd_mixer_selem_set_capture_dB_all" snd_mixer_selem_set_capture_dB_all) :int
-  (elem :pointer)
-  (value :long)
-  (dir :int))
-
-(cffi:defcfun ("snd_mixer_selem_set_playback_switch" snd_mixer_selem_set_playback_switch) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :int))
-
-(cffi:defcfun ("snd_mixer_selem_set_capture_switch" snd_mixer_selem_set_capture_switch) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (value :int))
-
-(cffi:defcfun ("snd_mixer_selem_set_playback_switch_all" snd_mixer_selem_set_playback_switch_all) :int
-  (elem :pointer)
-  (value :int))
-
-(cffi:defcfun ("snd_mixer_selem_set_capture_switch_all" snd_mixer_selem_set_capture_switch_all) :int
-  (elem :pointer)
-  (value :int))
-
-(cffi:defcfun ("snd_mixer_selem_get_playback_volume_range" snd_mixer_selem_get_playback_volume_range) :int
-  (elem :pointer)
-  (min :pointer)
-  (max :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_playback_dB_range" snd_mixer_selem_get_playback_dB_range) :int
-  (elem :pointer)
-  (min :pointer)
-  (max :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_set_playback_volume_range" snd_mixer_selem_set_playback_volume_range) :int
-  (elem :pointer)
-  (min :long)
-  (max :long))
-
-(cffi:defcfun ("snd_mixer_selem_get_capture_volume_range" snd_mixer_selem_get_capture_volume_range) :int
-  (elem :pointer)
-  (min :pointer)
-  (max :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_capture_dB_range" snd_mixer_selem_get_capture_dB_range) :int
-  (elem :pointer)
-  (min :pointer)
-  (max :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_set_capture_volume_range" snd_mixer_selem_set_capture_volume_range) :int
-  (elem :pointer)
-  (min :long)
-  (max :long))
-
-(cffi:defcfun ("snd_mixer_selem_is_enumerated" snd_mixer_selem_is_enumerated) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_is_enum_playback" snd_mixer_selem_is_enum_playback) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_is_enum_capture" snd_mixer_selem_is_enum_capture) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_enum_items" snd_mixer_selem_get_enum_items) :int
-  (elem :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_get_enum_item_name" snd_mixer_selem_get_enum_item_name) :int
-  (elem :pointer)
-  (idx :unsigned-int)
-  (maxlen :pointer)
-  (str :string))
-
-(cffi:defcfun ("snd_mixer_selem_get_enum_item" snd_mixer_selem_get_enum_item) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (idxp :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_set_enum_item" snd_mixer_selem_set_enum_item) :int
-  (elem :pointer)
-  (channel snd_mixer_selem_channel_id_t)
-  (idx :unsigned-int))
-
-(cffi:defcfun ("snd_mixer_selem_id_sizeof" snd_mixer_selem_id_sizeof) :pointer)
-
-(cffi:defcfun ("snd_mixer_selem_id_malloc" snd_mixer_selem_id_malloc) :int
-  (ptr :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_id_free" snd_mixer_selem_id_free) :void
-  (obj :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_id_copy" snd_mixer_selem_id_copy) :void
-  (dst :pointer)
-  (src :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_id_get_name" snd_mixer_selem_id_get_name) :string
-  (obj :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_id_get_index" snd_mixer_selem_id_get_index) :unsigned-int
-  (obj :pointer))
-
-(cffi:defcfun ("snd_mixer_selem_id_set_name" snd_mixer_selem_id_set_name) :void
-  (obj :pointer)
-  (val :string))
-
-(cffi:defcfun ("snd_mixer_selem_id_set_index" snd_mixer_selem_id_set_index) :void
-  (obj :pointer)
-  (val :unsigned-int))
+;; (cffi:defcfun ("snd_mixer_selem_has_playback_volume" snd_mixer_selem_has_playback_volume) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_playback_volume_joined" snd_mixer_selem_has_playback_volume_joined) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_capture_volume" snd_mixer_selem_has_capture_volume) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_capture_volume_joined" snd_mixer_selem_has_capture_volume_joined) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_common_switch" snd_mixer_selem_has_common_switch) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_playback_switch" snd_mixer_selem_has_playback_switch) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_playback_switch_joined" snd_mixer_selem_has_playback_switch_joined) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_capture_switch" snd_mixer_selem_has_capture_switch) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_capture_switch_joined" snd_mixer_selem_has_capture_switch_joined) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_has_capture_switch_exclusive" snd_mixer_selem_has_capture_switch_exclusive) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_ask_playback_vol_dB" snd_mixer_selem_ask_playback_vol_dB) :int
+;;   (elem :pointer)
+;;   (value :long)
+;;   (dBvalue :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_ask_capture_vol_dB" snd_mixer_selem_ask_capture_vol_dB) :int
+;;   (elem :pointer)
+;;   (value :long)
+;;   (dBvalue :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_ask_playback_dB_vol" snd_mixer_selem_ask_playback_dB_vol) :int
+;;   (elem :pointer)
+;;   (dBvalue :long)
+;;   (dir :int)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_ask_capture_dB_vol" snd_mixer_selem_ask_capture_dB_vol) :int
+;;   (elem :pointer)
+;;   (dBvalue :long)
+;;   (dir :int)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_playback_volume" snd_mixer_selem_get_playback_volume) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_capture_volume" snd_mixer_selem_get_capture_volume) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_playback_dB" snd_mixer_selem_get_playback_dB) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_capture_dB" snd_mixer_selem_get_capture_dB) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_playback_switch" snd_mixer_selem_get_playback_switch) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_capture_switch" snd_mixer_selem_get_capture_switch) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_playback_volume" snd_mixer_selem_set_playback_volume) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :long))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_capture_volume" snd_mixer_selem_set_capture_volume) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :long))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_playback_dB" snd_mixer_selem_set_playback_dB) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :long)
+;;   (dir :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_capture_dB" snd_mixer_selem_set_capture_dB) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :long)
+;;   (dir :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_playback_volume_all" snd_mixer_selem_set_playback_volume_all) :int
+;;   (elem :pointer)
+;;   (value :long))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_capture_volume_all" snd_mixer_selem_set_capture_volume_all) :int
+;;   (elem :pointer)
+;;   (value :long))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_playback_dB_all" snd_mixer_selem_set_playback_dB_all) :int
+;;   (elem :pointer)
+;;   (value :long)
+;;   (dir :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_capture_dB_all" snd_mixer_selem_set_capture_dB_all) :int
+;;   (elem :pointer)
+;;   (value :long)
+;;   (dir :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_playback_switch" snd_mixer_selem_set_playback_switch) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_capture_switch" snd_mixer_selem_set_capture_switch) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (value :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_playback_switch_all" snd_mixer_selem_set_playback_switch_all) :int
+;;   (elem :pointer)
+;;   (value :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_capture_switch_all" snd_mixer_selem_set_capture_switch_all) :int
+;;   (elem :pointer)
+;;   (value :int))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_playback_volume_range" snd_mixer_selem_get_playback_volume_range) :int
+;;   (elem :pointer)
+;;   (min :pointer)
+;;   (max :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_playback_dB_range" snd_mixer_selem_get_playback_dB_range) :int
+;;   (elem :pointer)
+;;   (min :pointer)
+;;   (max :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_playback_volume_range" snd_mixer_selem_set_playback_volume_range) :int
+;;   (elem :pointer)
+;;   (min :long)
+;;   (max :long))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_capture_volume_range" snd_mixer_selem_get_capture_volume_range) :int
+;;   (elem :pointer)
+;;   (min :pointer)
+;;   (max :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_capture_dB_range" snd_mixer_selem_get_capture_dB_range) :int
+;;   (elem :pointer)
+;;   (min :pointer)
+;;   (max :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_capture_volume_range" snd_mixer_selem_set_capture_volume_range) :int
+;;   (elem :pointer)
+;;   (min :long)
+;;   (max :long))
+
+;; (cffi:defcfun ("snd_mixer_selem_is_enumerated" snd_mixer_selem_is_enumerated) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_is_enum_playback" snd_mixer_selem_is_enum_playback) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_is_enum_capture" snd_mixer_selem_is_enum_capture) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_enum_items" snd_mixer_selem_get_enum_items) :int
+;;   (elem :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_enum_item_name" snd_mixer_selem_get_enum_item_name) :int
+;;   (elem :pointer)
+;;   (idx :unsigned-int)
+;;   (maxlen :pointer)
+;;   (str :string))
+
+;; (cffi:defcfun ("snd_mixer_selem_get_enum_item" snd_mixer_selem_get_enum_item) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (idxp :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_set_enum_item" snd_mixer_selem_set_enum_item) :int
+;;   (elem :pointer)
+;;   (channel snd_mixer_selem_channel_id_t)
+;;   (idx :unsigned-int))
+
+;; (cffi:defcfun ("snd_mixer_selem_id_sizeof" snd_mixer_selem_id_sizeof) :pointer)
+
+;; (cffi:defcfun ("snd_mixer_selem_id_malloc" snd_mixer_selem_id_malloc) :int
+;;   (ptr :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_id_free" snd_mixer_selem_id_free) :void
+;;   (obj :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_id_copy" snd_mixer_selem_id_copy) :void
+;;   (dst :pointer)
+;;   (src :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_id_get_name" snd_mixer_selem_id_get_name) :string
+;;   (obj :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_id_get_index" snd_mixer_selem_id_get_index) :unsigned-int
+;;   (obj :pointer))
+
+;; (cffi:defcfun ("snd_mixer_selem_id_set_name" snd_mixer_selem_id_set_name) :void
+;;   (obj :pointer)
+;;   (val :string))
+
+;; (cffi:defcfun ("snd_mixer_selem_id_set_index" snd_mixer_selem_id_set_index) :void
+;;   (obj :pointer)
+;;   (val :unsigned-int))
 
 (cl:defconstant SND_SEQ_OPEN_OUTPUT 1)
 
@@ -1609,19 +1620,19 @@
 
 ;; (cl:defconstant PACKAGE_VERSION "")
 
-;; (cl:defconstant STDC_HEADERS 1)
+(cl:defconstant STDC_HEADERS 1)
 
-;; (cl:defconstant TIME_WITH_SYS_TIME 1)
+(cl:defconstant TIME_WITH_SYS_TIME 1)
 
 ;; (cl:defconstant VERSION "1.0.9")
 
-;; (cl:defconstant SND_UTIL_MAJOR 1)
+(cl:defconstant SND_UTIL_MAJOR 1)
 
-;; (cl:defconstant SND_UTIL_MINOR 0)
+(cl:defconstant SND_UTIL_MINOR 0)
 
-;; (cl:defconstant SND_UTIL_SUBMINOR 9)
+(cl:defconstant SND_UTIL_SUBMINOR 9)
 
-;; (cl:defconstant SND_UTIL_VERSION (cl:logior (cl:ash 1 16) (cl:ash 0 8) 9))
+(cl:defconstant SND_UTIL_VERSION (cl:logior (cl:ash 1 16) (cl:ash 0 8) 9))
 
 ;; (cl:defconstant SND_UTIL_VERSION_STR "1.0.9")
 
