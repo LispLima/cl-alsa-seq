@@ -26,22 +26,9 @@
 %include "poll.h"
 %include "bits.poll.h"
 /* %include "/usr/include/alsa/mixer.h" */
-/* %include "/usr/include/alsa/seq_event.h" */
+%include "seq_event.h"
 %include "/usr/include/alsa/seq.h"
 /* %include "/usr/include/alsa/mixer.h" */
 %include "/usr/include/alsa/seqmid.h"
 %include "/usr/include/alsa/seq_midi_event.h"
-
-/* typedef unsigned int size_t; */
-
-/* %include "/home/rick/git_checkouts/nanomsg/src/nn.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/bus.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/inproc.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/ipc.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/pair.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/pipeline.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/pubsub.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/reqrep.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/survey.h" */
-/* %include "/home/rick/git_checkouts/nanomsg/src/tcp.h" */
 

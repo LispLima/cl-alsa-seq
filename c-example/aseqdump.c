@@ -47,18 +47,27 @@ int main(int argc, char *argv[])
   int npfds;
   npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
   pfds = alloca(sizeof(*pfds) * npfds);
+  printf("allocated %d descriptors\n", npfds);
   snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
   
   snd_seq_event_t *event;
   while(1) {
-    if ( poll(pfds, npfds, 100000) > 0 ) {
+    int npolls;
+    if ( (npolls = poll(pfds, npfds, -1)) > 0 ) {
+      printf ("polled %d times\n", npolls);
       snd_seq_event_input(seq, &event);
+      printf ("got thing from %d, %d. Type = %d\n",
+              event->source.client,
+              event->source.port,
+              event->type);
       snd_seq_ev_set_source(event, my_port);
       snd_seq_ev_set_subs(event);
       snd_seq_ev_set_direct(event);
       snd_seq_event_output(seq, event);
       snd_seq_drain_output(seq);
     }
+    else
+      printf("failed to poll %d times\n", npolls);
   }
   snd_seq_close(seq);
   return 0;
