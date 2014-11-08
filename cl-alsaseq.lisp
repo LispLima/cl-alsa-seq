@@ -22,7 +22,7 @@
                                     (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC 
                                             SND_SEQ_PORT_TYPE_APPLICATION))))
 
-(defparameter event (foreign-alloc '(:struct snd_seq_event_t))
+(defparameter event (foreign-alloc '(:struct snd_seq_event_t)))
 (defparameter pfds nil)
 (defun first-poll ()
   (setf pfds (foreign-alloc '(:struct pollfd)))
@@ -41,8 +41,16 @@
         (snd_seq_event_input (mem-ref seq :pointer)
                              event)
         ;; (snd_seq_ev_set_source (mem-ref event :pointer) my-port)
-        (foreign-slot-value
-         (mem-ref event :pointer) '(:struct snd_seq_event_t) 'type))))
+        (let* ((event (mem-ref
+                      (mem-ref event :pointer) '(:struct snd_seq_event_t)))
+               (data-pointer  (getf event 'data))
+               (data (mem-ref data-pointer
+                      '(:union snd_seq_event_data)))
+               ;; (note-data (mem-ref (mem-ref data :pointer)
+               ;;                     '(:struct snd_seq_ev_note_t)))
+               )
+          (values event data-pointer data)))))
+;;wacky bug where the (:union business doesn't seemt to work well
 
 
         ;; (mem-ref (getf (mem-ref event '(:pointer (:struct snd_seq_event_t)))

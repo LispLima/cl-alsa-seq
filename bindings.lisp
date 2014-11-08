@@ -97,9 +97,9 @@
 	(client :unsigned-char)
 	(port :unsigned-char))
 
-;; (cffi:defcstruct snd_seq_connect_t
-;; 	(sender snd_seq_addr_t)
-;; 	(dest snd_seq_addr_t))
+(cffi:defcstruct snd_seq_connect_t
+	(sender snd_seq_addr_t)
+	(dest snd_seq_addr_t))
 
 (cffi:defcstruct snd_seq_real_time_t
 	(tv_sec :unsigned-int)
@@ -189,17 +189,17 @@
 	(dest snd_seq_addr_t)
 	(data :pointer))
 
-;; (cffi:defcunion snd_seq_event_data
-;; 	(note snd_seq_ev_note_t)
-;; 	(control snd_seq_ev_ctrl_t)
-;; 	(raw8 snd_seq_ev_raw8_t)
-;; 	(raw32 snd_seq_ev_raw32_t)
-;; 	(ext snd_seq_ev_ext_t)
-;; 	(queue snd_seq_ev_queue_control_t)
-;; 	(time snd_seq_timestamp_t)
-;; 	(addr snd_seq_addr_t)
-;; 	(connect snd_seq_connect_t)
-;; 	(result snd_seq_result_t))
+(cffi:defcunion snd_seq_event_data
+	(note snd_seq_ev_note_t)
+	(control snd_seq_ev_ctrl_t)
+	(raw8 snd_seq_ev_raw8_t)
+	(raw32 snd_seq_ev_raw32_t)
+	(ext snd_seq_ev_ext_t)
+	(queue snd_seq_ev_queue_control_t)
+	(time snd_seq_timestamp_t)
+	(addr snd_seq_addr_t)
+	(connect snd_seq_connect_t)
+	(result snd_seq_result_t))
 
 (cl:defconstant SND_SEQ_OPEN_OUTPUT 1)
 
