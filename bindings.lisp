@@ -184,7 +184,7 @@
 	(flags :unsigned-char)
 	(tag :unsigned-char)
 	(queue :unsigned-char)
-	(time (:pointer (:union snd_seq_timestamp_t)))
+	(time (:union snd_seq_timestamp_t))
 	(source (:pointer (:struct snd_seq_addr_t)))
 	(dest (:pointer (:struct snd_seq_addr_t)))
 	(data :pointer))
@@ -196,8 +196,8 @@
 	(raw32 (:pointer (:struct snd_seq_ev_raw32_t)))
 	(ext (:pointer (:struct snd_seq_ev_ext_t)))
 	(queue (:pointer (:struct snd_seq_ev_queue_control_t)))
-	(time (:pointer (:union
-                         snd_seq_timestamp_t)))
+	(time (:union
+               snd_seq_timestamp_t))
 	(addr (:pointer (:struct snd_seq_addr_t)))
 	(connect (:pointer (:struct snd_seq_connect_t)))
 	(result (:pointer (:struct snd_seq_result_t))))
