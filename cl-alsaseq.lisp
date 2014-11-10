@@ -22,7 +22,7 @@
                                     (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC 
                                             SND_SEQ_PORT_TYPE_APPLICATION))))
 
-(defparameter event (foreign-alloc '(:struct snd_seq_event_t)))
+(defparameter *event (foreign-alloc '(:struct snd_seq_event_t)))
 (defparameter pfds nil)
 (defun first-poll ()
   (setf pfds (foreign-alloc '(:struct pollfd)))
@@ -32,6 +32,31 @@
   (create-port "foo")
   (first-poll))
   
+(defparameter *lookup-table*
+  (list
+   :SND_SEQ_EVENT_SYSTEM nil
+   :SND_SEQ_EVENT_NOTE '(:struct snd_seq_ev_note_t)
+   :SND_SEQ_EVENT_CONTROLLER '(:struct snd_seq_ev_ctrl_t)
+   :SND_SEQ_EVENT_START '(:struct snd_seq_ev_queue_control_t)
+   :SND_SEQ_EVENT_TUNE_REQUEST nil
+   :SND_SEQ_EVENT_CLIENT_START '(:struct snd_seq_addr_t)
+   :SND_SEQ_EVENT_USR0 nil
+   :SND_SEQ_EVENT_SYSEX '(:struct ext)
+   :SND_SEQ_EVENT_USR_VAR0 nil))
+
+(defun transform (key val)
+  (print (list key val)))
+
+(defun lookup-table (rest)
+  (if rest
+      (cons (transform (car rest)
+                       (cadr rest))
+            (lookup-table (cddr rest)))))
+  
+
+(defun midi-data (event-type)
+  (declare (ignore event-type))
+  '(:STRUCT SND_SEQ_EV_NOTE_T))
 ;;This function missing some header stuff for the polling lib
 (defun midi-poll ()
   (assert pfds)
@@ -39,17 +64,24 @@
   (if (> (print (poll pfds 1 -1)) 0)
       (progn
         (snd_seq_event_input (mem-ref seq :pointer)
-                             event)
+                             *event)
         ;; (snd_seq_ev_set_source (mem-ref event :pointer) my-port)
         (let* ((event (mem-ref
-                      (mem-ref event :pointer) '(:struct snd_seq_event_t)))
-               (data-pointer  (getf event 'data))
-               (data (mem-ref data-pointer
-                      '(:union snd_seq_event_data)))
+                      (mem-ref *event :pointer) '(:struct snd_seq_event_t)))
+               (event-type (getf event 'type))
+               (*data (cffi:foreign-slot-pointer
+                            (mem-ref *event :pointer)
+                            '(:struct snd_seq_event_t) 'data))
+                           
                ;; (note-data (mem-ref (mem-ref data :pointer)
                ;;                     '(:struct snd_seq_ev_note_t)))
                )
-          (values event data-pointer data)))))
+        
+                           
+          (list :event event
+                :event-type (foreign-enum-keyword 'snd_seq_event_type
+                                                  event-type)
+                :event-data (cffi:mem-ref *data (midi-data event-type)))))))
 ;;wacky bug where the (:union business doesn't seemt to work well
 
 
@@ -64,3 +96,5 @@
         ;; (snd_seq_event_output (mem-ref (mem-ref seq :pointer) :pointer)
         ;;                       (mem-ref event :pointer))
         ;; (snd_seq_drain_output (mem-ref (mem-ref seq :pointer) :pointer)))))
+
+
