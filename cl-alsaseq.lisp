@@ -24,9 +24,11 @@
 
 (defparameter *event (foreign-alloc '(:struct snd_seq_event_t)))
 (defparameter pfds nil)
+
 (defun first-poll ()
   (setf pfds (foreign-alloc '(:struct pollfd)))
   (midi-poll))
+
 (defun init ()
   (init-seq)
   (create-port "foo")
@@ -44,19 +46,29 @@
    :SND_SEQ_EVENT_SYSEX '(:struct ext)
    :SND_SEQ_EVENT_USR_VAR0 nil))
 
-(defun transform (key val)
-  (print (list key val)))
+(defun snd-seq-condition (key val)
+  `((>= event-type (foreign-enum-value 'snd_seq_event_type ,key))
+    ',val))
 
-(defun lookup-table (rest)
-  (if rest
-      (cons (transform (car rest)
-                       (cadr rest))
-            (lookup-table (cddr rest)))))
-  
+(defmacro cond-lookup ()
+  (labels ((lookup-table (rest)
+             (if rest
+                 (cons (snd-seq-condition (car rest)
+                                          (cadr rest))
+                       (lookup-table (cddr rest))))))
+    `(cond ,@(reverse (lookup-table *lookup-table*)))))
 
-(defun midi-data (event-type)
-  (declare (ignore event-type))
-  '(:STRUCT SND_SEQ_EV_NOTE_T))
+(defun cond-lookup-test (event-type-key)
+  (let ((event-type (FOREIGN-ENUM-VALUE
+                     'SND_SEQ_EVENT_TYPE event-type-key)))
+    (cond-lookup)))
+
+(defun midi-data (*data event-type)
+  (cffi:mem-ref *data (print (cond-lookup))))
+
+;; (defun midi-data (event-type)
+;;   (declare (ignore event-type))
+;;   '(:STRUCT SND_SEQ_EV_NOTE_T))
 ;;This function missing some header stuff for the polling lib
 (defun midi-poll ()
   (assert pfds)
@@ -81,7 +93,7 @@
           (list :event event
                 :event-type (foreign-enum-keyword 'snd_seq_event_type
                                                   event-type)
-                :event-data (cffi:mem-ref *data (midi-data event-type)))))))
+                :event-data (midi-data *data event-type))))))
 ;;wacky bug where the (:union business doesn't seemt to work well
 
 
