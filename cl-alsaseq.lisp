@@ -8,6 +8,8 @@
 (defvar seq (foreign-alloc :pointer))
 
 (defun init-seq ()
+  ;;(snd_seq_open seq "default" SND_SEQ_OPEN_DUPLEX 0)
+  ;;or alternatively can experiment with
   (snd_seq_open seq "default" SND_SEQ_OPEN_DUPLEX SND_SEQ_NONBLOCK)
   (snd_seq_set_client_name (mem-ref seq :pointer) "Common Lisp"))
 
@@ -23,7 +25,9 @@
                                     (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC 
                                             SND_SEQ_PORT_TYPE_APPLICATION)))
 
-  (snd_seq_nonblock (mem-ref seq :pointer) 1))
+  ;; (snd_seq_nonblock (mem-ref seq :pointer) 1)
+  ;;Shouldn't be necessary 
+  )
 
 (defvar *event (foreign-alloc '(:struct snd_seq_event_t)))
 (defvar pfds nil)
@@ -69,36 +73,6 @@
                        :dest (mem-ref *dest '(:struct snd_seq_addr_t))
                        :event-type (foreign-enum-keyword 'snd_seq_event_type
                                                          event-type)
-                       :event-data (midi-data *data event-type)))))))
-
-(defun midi-echo ()
-  (assert pfds)
-  (snd_seq_poll_descriptors (mem-ref seq :pointer) pfds 1 POLLIN)
-  (if (> (print (poll pfds 1 -1)) 0)
-      (progn
-        (snd_seq_event_input (mem-ref seq :pointer)
-                             *event)
-        (let* ((event (mem-ref
-                      (mem-ref *event :pointer) '(:struct snd_seq_event_t)))
-               (event-type (getf event 'type))
-               (*data (cffi:foreign-slot-pointer
-                            (mem-ref *event :pointer)
-                            '(:struct snd_seq_event_t) 'data))
-               (*dest (cffi:foreign-slot-pointer
-                       (mem-ref *event :pointer)
-                       '(:struct snd_seq_event_t) 'dest))
-               (*source (cffi:foreign-slot-pointer
-                         (mem-ref *event :pointer)
-                         '(:struct snd_seq_event_t) 'source))
-               (*queue (cffi:foreign-slot-pointer
-                         (mem-ref *event :pointer)
-                         '(:struct snd_seq_event_t) 'queue))
-               )
-          (print (list :event event
-                       :source (mem-ref *source  '(:struct snd_seq_addr_t))
-                       :dest (mem-ref *dest '(:struct snd_seq_addr_t))
-                       :event-type (foreign-enum-keyword 'snd_seq_event_type
-                                                         event-type)
                        :event-data (midi-data *data event-type)))
 
           ;; (snd_seq_ev_set_source (mem-ref event :pointer) my-port)
@@ -114,12 +88,14 @@
                 SND_SEQ_ADDRESS_UNKNOWN)
           
           ;; (snd_seq_ev_set_direct (mem-ref event))
-          (setf (mem-ref *queue :uchar)
+          (setf (getf event 'queue)
                 SND_SEQ_QUEUE_DIRECT)
 
+          ;; (snd_seq_event_output (mem-ref seq :pointer)
+          ;;                       (mem-ref *event :pointer))
+          ;; (snd_seq_drain_output (mem-ref seq :pointer))
           (snd_seq_event_output_direct (mem-ref seq :pointer)
                                        *event)
-          ;; (snd_seq_drain_output (mem-ref seq :pointer))
           (print (list :event event
                        :source (mem-ref *source  '(:struct snd_seq_addr_t))
                        :dest (mem-ref *dest '(:struct snd_seq_addr_t))
