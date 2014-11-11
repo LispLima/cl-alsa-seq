@@ -8,5 +8,6 @@
   :depends-on (#:cffi)
   :components ((:file "package")
                (:file "bindings")
+               (:file "event-lookup")
                (:file "cl-alsaseq")))
 
