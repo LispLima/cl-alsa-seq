@@ -63,8 +63,8 @@ int main(int argc, char *argv[])
       snd_seq_ev_set_source(event, my_port);
       snd_seq_ev_set_subs(event);
       snd_seq_ev_set_direct(event);
-      snd_seq_event_output(seq, event);
-      snd_seq_drain_output(seq);
+      snd_seq_event_output_direct(seq, event);
+      /* snd_seq_drain_output(seq); */
     }
     else
       printf("failed to poll %d times\n", npolls);
