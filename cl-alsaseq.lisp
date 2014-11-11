@@ -29,12 +29,8 @@
   (setf pfds (foreign-alloc '(:struct pollfd)))
   (midi-poll))
 
-(defun init ()
-  (init-seq)
-  (create-port "foo")
-  (first-poll))
-  
-(defparameter *lookup-table*
+
+(defun lookup-table ()
   (list
    :SND_SEQ_EVENT_SYSTEM nil
    :SND_SEQ_EVENT_NOTE '(:struct snd_seq_ev_note_t)
@@ -51,12 +47,12 @@
     ',val))
 
 (defmacro cond-lookup ()
-  (labels ((lookup-table (rest)
+  (labels ((lookup (rest)
              (if rest
                  (cons (snd-seq-condition (car rest)
                                           (cadr rest))
-                       (lookup-table (cddr rest))))))
-    `(cond ,@(reverse (lookup-table *lookup-table*)))))
+                       (lookup (cddr rest))))))
+    `(cond ,@(reverse (lookup (lookup-table))))))
 
 (defun cond-lookup-test (event-type-key)
   (let ((event-type (FOREIGN-ENUM-VALUE
@@ -77,36 +73,52 @@
       (progn
         (snd_seq_event_input (mem-ref seq :pointer)
                              *event)
-        ;; (snd_seq_ev_set_source (mem-ref event :pointer) my-port)
         (let* ((event (mem-ref
                       (mem-ref *event :pointer) '(:struct snd_seq_event_t)))
                (event-type (getf event 'type))
                (*data (cffi:foreign-slot-pointer
                             (mem-ref *event :pointer)
                             '(:struct snd_seq_event_t) 'data))
-                           
-               ;; (note-data (mem-ref (mem-ref data :pointer)
-               ;;                     '(:struct snd_seq_ev_note_t)))
+               (*dest (cffi:foreign-slot-pointer
+                       (mem-ref *event :pointer)
+                       '(:struct snd_seq_event_t) 'dest))
+               (*source (cffi:foreign-slot-pointer
+                         (mem-ref *event :pointer)
+                         '(:struct snd_seq_event_t) 'source))
                )
-        
-                           
-          (list :event event
-                :event-type (foreign-enum-keyword 'snd_seq_event_type
-                                                  event-type)
-                :event-data (midi-data *data event-type))))))
-;;wacky bug where the (:union business doesn't seemt to work well
+          (print (list :event event
+                       :source (mem-ref *source  '(:struct snd_seq_addr_t))
+                       :dest (mem-ref *dest '(:struct snd_seq_addr_t))
+                       :event-type (foreign-enum-keyword 'snd_seq_event_type
+                                                         event-type)
+                       :event-data (midi-data *data event-type)))
+
+          ;; (snd_seq_ev_set_source (mem-ref event :pointer) my-port)
+          (setf (getf (mem-ref *source  '(:struct snd_seq_addr_t)) 'port)
+                my-port)
+
+          ;; (snd_seq_ev_set_subs (mem-ref event :pointer) event)
+          (setf (getf (mem-ref *dest  '(:struct snd_seq_addr_t)) 'client)
+                SND_SEQ_ADDRESS_SUBSCRIBERS)
+          (setf (getf (mem-ref *dest  '(:struct snd_seq_addr_t)) 'port)
+                SND_SEQ_ADDRESS_UNKNOWN)
+          
+          ;; (snd_seq_ev_set_direct (mem-ref event))
+          (setf (getf event 'queue)
+                SND_SEQ_QUEUE_DIRECT)
+
+          (snd_seq_event_output (mem-ref seq :pointer)
+                                (mem-ref *event :pointer))
+          (snd_seq_drain_output (mem-ref seq :pointer))
+          (print (list :event event
+                       :source (mem-ref *source  '(:struct snd_seq_addr_t))
+                       :dest (mem-ref *dest '(:struct snd_seq_addr_t))
+                       :event-type (foreign-enum-keyword 'snd_seq_event_type
+                                                         event-type)
+                       :event-data (midi-data *data event-type)))))))
 
 
-        ;; (mem-ref (getf (mem-ref event '(:pointer (:struct snd_seq_event_t)))
-        ;;                'source)
-        ;;          '(:struct snd_seq_addr_t)))))
-
-
-
-        ;; (snd_seq_ev_set_subs (mem-ref event :pointer) event)
-        ;; (snd_seq_ev_set_direct (mem-ref event))
-        ;; (snd_seq_event_output (mem-ref (mem-ref seq :pointer) :pointer)
-        ;;                       (mem-ref event :pointer))
-        ;; (snd_seq_drain_output (mem-ref (mem-ref seq :pointer) :pointer)))))
-
-
+(defun init ()
+  (init-seq)
+  (create-port "foo")
+  (first-poll))
