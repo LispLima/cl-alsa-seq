@@ -164,8 +164,8 @@
           (print (describe-event ev))
           (setf *errno* (snd_seq_event_output_direct *seq ev))
           (foreign-funcall "strerror" :int *errno* :string))))))
-          
-    
+
+
 (defun init ()
   (init-seq "foo")
   (create-port "bar"))
