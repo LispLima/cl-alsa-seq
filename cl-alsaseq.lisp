@@ -136,13 +136,20 @@
      (setf-snd_seq_ev_note-slot ,var 'duration ,duration)
      ,@body))
 
-(defun send-note-on (velocity note channel)
-  (with-snd_seq_addr (source 0 0)
-    (with-snd_seq_addr (dest 0 0)
+(defcvar "errno" :int)
+
+(defun send-note-on (velocity note channel
+                     &optional (*seq (mem-ref **seq :pointer))
+                       (my-port *my-port*))
+                       
+  (with-snd_seq_addr (dest SND_SEQ_ADDRESS_SUBSCRIBERS
+                             SND_SEQ_ADDRESS_UNKNOWN)
+    (with-snd_seq_addr (source 0 my-port)
       (with-snd_seq_ev_note (data note velocity channel 0 0)
         (with-snd_seq_event (ev data dest source (null-pointer)
-                                0 0 0 (FOREIGN-ENUM-VALUE
-                                       'SND_SEQ_EVENT_TYPE :SND_SEQ_EVENT_NOTEON))
+                                SND_SEQ_QUEUE_DIRECT 0 0
+                                (FOREIGN-ENUM-VALUE
+                                 'SND_SEQ_EVENT_TYPE :SND_SEQ_EVENT_NOTEON))
           ;;XXX DON'T DELETE
           ;;this snippet finally shows how to write &ev
           ;; (with-foreign-pointer (&ev 1)
@@ -154,7 +161,10 @@
           ;; snd_seq_event_output(seq, ev);
           ;; snd_seq_drain_output(seq);
           (dump-event ev)
-          (describe-event ev))))))
+          (print (describe-event ev))
+          (setf *errno* (snd_seq_event_output_direct *seq ev))
+          (foreign-funcall "strerror" :int *errno* :string))))))
+          
     
 (defun init ()
   (init-seq "foo")
