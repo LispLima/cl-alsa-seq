@@ -179,6 +179,19 @@
 	(d32 :pointer)
 	(d8 :pointer))
 
+(cffi:defcunion snd_seq_event_data
+	(note (:pointer (:struct snd_seq_ev_note_t)))
+	(control (:pointer (:struct snd_seq_ev_ctrl_t)))
+	(raw8 (:pointer (:struct snd_seq_ev_raw8_t)))
+	(raw32 (:pointer (:struct snd_seq_ev_raw32_t)))
+	(ext (:pointer (:struct snd_seq_ev_ext_t)))
+	(queue (:pointer (:struct snd_seq_ev_queue_control_t)))
+	;; (time (:union snd_seq_timestamp_t))
+	(time :pointer)
+	(addr (:pointer (:struct snd_seq_addr_t)))
+	(connect (:pointer (:struct snd_seq_connect_t)))
+	(result (:pointer (:struct snd_seq_result_t))))
+
 (cffi:defcstruct snd_seq_event_t
 	(type :unsigned-char)
 	(flags :unsigned-char)
@@ -187,20 +200,9 @@
 	(time (:union snd_seq_timestamp_t))
 	(source (:pointer (:struct snd_seq_addr_t)))
 	(dest (:pointer (:struct snd_seq_addr_t)))
-	(data :pointer))
-
-(cffi:defcunion snd_seq_event_data
-	(note (:pointer (:struct snd_seq_ev_note_t)))
-	(control (:pointer (:struct snd_seq_ev_ctrl_t)))
-	(raw8 (:pointer (:struct snd_seq_ev_raw8_t)))
-	(raw32 (:pointer (:struct snd_seq_ev_raw32_t)))
-	(ext (:pointer (:struct snd_seq_ev_ext_t)))
-	(queue (:pointer (:struct snd_seq_ev_queue_control_t)))
-	(time (:union
-               snd_seq_timestamp_t))
-	(addr (:pointer (:struct snd_seq_addr_t)))
-	(connect (:pointer (:struct snd_seq_connect_t)))
-	(result (:pointer (:struct snd_seq_result_t))))
+	(data :pointer)
+        ;; (data (:union snd_seq_event_data))
+        )
 
 (cl:defconstant SND_SEQ_OPEN_OUTPUT 1)
 

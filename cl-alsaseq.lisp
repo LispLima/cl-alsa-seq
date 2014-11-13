@@ -45,9 +45,8 @@
   "Mapping event-type and data pointer to lisp-readable midi data"
   (cffi:mem-ref *data (cond-lookup)))
 
-(defun describe-note (*event)
-  (let* ((event (mem-ref *event :pointer))
-         (event-type (getf (mem-ref
+(defun describe-event (event)
+  (let* ((event-type (getf (mem-ref
                             event '(:struct snd_seq_event_t))
                            'type))
          (*data (cffi:foreign-slot-pointer
@@ -65,6 +64,9 @@
                                             event-type)
           :event-data (midi-data *data event-type))))
 
+(defmacro dump-event (*event)
+  `(print (mem-ref ,*event '(:struct snd_seq_event_t))))
+
 (defun recv (&optional (*seq (mem-ref **seq :pointer)))
   "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then return that event"
   (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
@@ -73,12 +75,87 @@
       (snd_seq_poll_descriptors *seq pfds npfds POLLIN)
       (assert (> (poll pfds npfds -1) 0))
       (snd_seq_event_input *seq *event)
-      (describe-note *event))))
+      (dump-event (mem-ref *event :pointer))
+      (describe-event (mem-ref *event :pointer)))))
+
+(defcfun "memset" :pointer
+  (*dest :pointer)
+  (val :int)
+  (*n :uchar))
+
+(defun clear-foreign-type (*ev type)
+   ;;(memset *ev 0 (sizeof snd_seq_event_t)))
+  (memset *ev 0 (foreign-type-size type)))
+
+
+
+
+(defmacro with-snd_seq_addr ((var client port) &body body)
+  `(with-foreign-object (,var '(:struct snd_seq_addr_t))
+     (setf (foreign-slot-value ,var '(:struct snd_seq_addr_t)
+                               'client) ,client)
+     (setf (foreign-slot-value ,var '(:struct snd_seq_addr_t)
+                               'port) ,port)
+     ,@body))
+
+(defmacro setf-snd_seq_event-slot (ptr slot val)
+  `(setf (foreign-slot-value ,ptr
+                             '(:struct snd_seq_event_t)
+                             ,slot)
+         ,val))
+
+(defmacro with-snd_seq_event ((var data dest source time
+                                   queue tag flags type) &body body)
+  (declare (ignore time))
+  `(with-foreign-object (,var '(:struct snd_seq_event_t))
+     (clear-foreign-type ,var '(:struct snd_seq_event_t))
+     (setf-snd_seq_event-slot ,var 'data (mem-ref ,data :pointer))
+     (setf-snd_seq_event-slot ,var 'dest (mem-ref ,dest :pointer))
+     (setf-snd_seq_event-slot ,var 'source (mem-ref ,source :pointer))
+     ;; (setf-snd_seq_event-slot ,var 'time ,time)
+     (setf-snd_seq_event-slot ,var 'queue ,queue)
+     (setf-snd_seq_event-slot ,var 'tag ,tag)
+     (setf-snd_seq_event-slot ,var 'flags ,flags)
+     (setf-snd_seq_event-slot ,var 'type ,type)
+     ,@body))
+
+(defmacro setf-snd_seq_ev_note-slot (ptr slot val)
+  `(setf (foreign-slot-value ,ptr
+                             '(:struct snd_seq_ev_note_t)
+                             ,slot)
+         ,val))
+
+(defmacro with-snd_seq_ev_note ((var note velocity channel off_velocity duration)
+                                &body body)
+  `(with-foreign-object (,var '(:struct snd_seq_ev_note_t))
+     (clear-foreign-type ,var '(:struct snd_seq_ev_note_t))
+     (setf-snd_seq_ev_note-slot ,var 'note ,note)
+     (setf-snd_seq_ev_note-slot ,var 'velocity ,velocity)
+     (setf-snd_seq_ev_note-slot ,var 'channel ,channel)
+     (setf-snd_seq_ev_note-slot ,var 'off_velocity ,off_velocity)
+     (setf-snd_seq_ev_note-slot ,var 'duration ,duration)
+     ,@body))
 
 (defun send-note-on (velocity note channel)
-  (cffi:with-foreign-objects ((*event '(:struct snd_seq_event_t)))
-    ))
+  (with-snd_seq_addr (source 0 0)
+    (with-snd_seq_addr (dest 0 0)
+      (with-snd_seq_ev_note (data note velocity channel 0 0)
+        (with-snd_seq_event (ev data dest source (null-pointer)
+                                0 0 0 (FOREIGN-ENUM-VALUE
+                                       'SND_SEQ_EVENT_TYPE :SND_SEQ_EVENT_NOTEON))
+          ;;XXX DON'T DELETE
+          ;;this snippet finally shows how to write &ev
+          ;; (with-foreign-pointer (&ev 1)
+          ;;   (setf (mem-ref &ev :pointer) ev)
 
+          ;; (snd_seq_ev_set_source *event *my-port*)
+          ;; (snd_seq_ev_set_subs ev)
+          ;; snd_seq_ev_set_direct(ev);
+          ;; snd_seq_event_output(seq, ev);
+          ;; snd_seq_drain_output(seq);
+          (dump-event ev)
+          (describe-event ev))))))
+    
 (defun init ()
   (init-seq "foo")
   (create-port "bar"))
