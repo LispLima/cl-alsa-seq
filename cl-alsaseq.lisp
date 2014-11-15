@@ -48,7 +48,7 @@
           :queue
           queue
           :source
-          (list source (mem-ref (print source) '(:struct snd_seq_addr_t)))
+          (list source (mem-ref source '(:struct snd_seq_addr_t)))
           :dest
           (list dest (mem-ref dest '(:struct snd_seq_addr_t)))
           )))
@@ -80,8 +80,6 @@
                        event '(:struct snd_seq_event_t) 'source))
              (*dest (cffi:foreign-slot-pointer
                        event '(:struct snd_seq_event_t) 'dest)))
-        (dump-event *event)
-        (print (describe-event event))
         (setf (mem-ref (foreign-slot-pointer *source
                                              '(:struct snd_seq_addr_t) 'port)
                        :uchar)
@@ -135,15 +133,16 @@
 
 (defcvar "errno" :int)
 
-(defun send-note-on (velocity note channel
+(defun send-note (velocity note channel note-type
                      &optional (*seq (mem-ref **seq :pointer))
                        (my-port *my-port*))
-  
+  (assert (or (equal note-type :SND_SEQ_EVENT_NOTEOFF)
+              (equal note-type :SND_SEQ_EVENT_NOTEON)))
   (with-snd_seq_ev_note (data note velocity channel 0 0)
     (let ((event (convert-to-foreign (list 
                                       'type (foreign-enum-value
                                              'snd_seq_event_type
-                                             :SND_SEQ_EVENT_NOTEON)
+                                             note-type)
                                       'queue SND_SEQ_QUEUE_DIRECT
                                       )
                                      '(:struct snd_seq_event_t))))
@@ -161,6 +160,16 @@
       (describe-event event)
       (snd_seq_event_output *seq event)
       (snd_seq_drain_output *seq))))
+
+(defun send-note-on (velocity note channel
+                     &optional (*seq (mem-ref **seq :pointer))
+                       (my-port *my-port*))
+  (send-note velocity note channel :SND_SEQ_EVENT_NOTEON *seq my-port))
+
+(defun send-note-off (velocity note channel
+                     &optional (*seq (mem-ref **seq :pointer))
+                       (my-port *my-port*))
+  (send-note velocity note channel :SND_SEQ_EVENT_NOTEOFF *seq my-port))
 
 (defun init ()
   (init-seq "foo")
