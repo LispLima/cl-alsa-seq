@@ -192,7 +192,7 @@
 	(connect (:pointer (:struct snd_seq_connect_t)))
 	(result (:pointer (:struct snd_seq_result_t))))
 
-(cffi:defcstruct snd_seq_event_t
+(cffi:defcstruct snd_seq_event_t 
 	(type :unsigned-char)
 	(flags :unsigned-char)
 	(tag :unsigned-char)
@@ -201,9 +201,9 @@
         (time :pointer)
         ;; (source (:pointer (:struct snd_seq_addr_t)))
 	;; (dest (:pointer (:struct snd_seq_addr_t)))
-        (source (:pointer (:struct snd_seq_addr_t)))
-	(dest (:pointer (:struct snd_seq_addr_t)))
-	(data :pointer)
+        (source (:pointer (:struct snd_seq_addr_t)) :offset 12)
+	(dest (:pointer (:struct snd_seq_addr_t)) :offset 14)
+	(data :pointer :offset 16)
         ;; (data (:union snd_seq_event_data))
         )
 

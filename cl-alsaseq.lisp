@@ -56,9 +56,9 @@
           ;;       'queue)
           queue
           :source ;; (mem-ref *source '(:struct snd_seq_addr_t))
-          (list source (mem-ref dest '(:struct snd_seq_addr_t)))
+          (list source (mem-ref source '(:struct snd_seq_addr_t)))
           :dest ;; (mem-ref *dest '(:struct snd_seq_addr_t))
-          (list dest (mem-ref (inc-pointer dest 2) '(:struct snd_seq_addr_t)))
+          (list dest (mem-ref dest '(:struct snd_seq_addr_t)))
           )))
 
 
@@ -85,9 +85,9 @@
       (snd_seq_event_input *seq *event)
       (let* ((event (mem-ref *event :pointer))
              (*source (cffi:foreign-slot-pointer
-                       event '(:struct snd_seq_event_t) 'dest))
-             (*dest (inc-pointer (cffi:foreign-slot-pointer
-                       event '(:struct snd_seq_event_t) 'dest) 2)))
+                       event '(:struct snd_seq_event_t) 'source))
+             (*dest (cffi:foreign-slot-pointer
+                       event '(:struct snd_seq_event_t) 'dest)))
         (dump-event *event)
         (print (describe-event event))
         ;; (snd_seq_ev_set_source *event *my-port*)
