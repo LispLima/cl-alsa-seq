@@ -56,7 +56,7 @@
           ;;       'queue)
           queue
           :source ;; (mem-ref *source '(:struct snd_seq_addr_t))
-          (list source (mem-ref source '(:struct snd_seq_addr_t)))
+          (list source (mem-ref (print source) '(:struct snd_seq_addr_t)))
           :dest ;; (mem-ref *dest '(:struct snd_seq_addr_t))
           (list dest (mem-ref dest '(:struct snd_seq_addr_t)))
           )))
@@ -142,7 +142,9 @@
                                'client) ,client)
      (setf (foreign-slot-value ,var '(:struct snd_seq_addr_t)
                                'port) ,port)
-     ,@body))
+     ;; (with-foreign-pointer (,var 1)
+     ;;   (setf (mem-ref ,var :pointer) var1)
+     ,@body));; )
 
 (defmacro setf-snd_seq_event-slot (ptr slot val)
   `(setf (foreign-slot-value ,ptr
@@ -188,28 +190,29 @@
                      &optional (*seq (mem-ref **seq :pointer))
                        (my-port *my-port*))
                        
-  (with-snd_seq_addr (dest SND_SEQ_ADDRESS_SUBSCRIBERS
-                             SND_SEQ_ADDRESS_UNKNOWN)
-    (with-snd_seq_addr (source 0 my-port)
-      (with-snd_seq_ev_note (data note velocity channel 0 0)
-        (with-snd_seq_event (ev data dest source (null-pointer)
-                                SND_SEQ_QUEUE_DIRECT 0 0
-                                (FOREIGN-ENUM-VALUE
-                                 'SND_SEQ_EVENT_TYPE :SND_SEQ_EVENT_NOTEON))
-          ;;XXX DON'T DELETE
-          ;;this snippet finally shows how to write &ev
-          ;; (with-foreign-pointer (&ev 1)
-          ;;   (setf (mem-ref &ev :pointer) ev)
+  (with-snd_seq_ev_note (data note velocity channel 0 0)
+    (let ((event (convert-to-foreign (list 
+                                      'type (foreign-enum-value
+                                             'snd_seq_event_type
+                                             :SND_SEQ_EVENT_NOTEON)
+                                      'queue SND_SEQ_QUEUE_DIRECT
+                                      )
+                                     '(:struct snd_seq_event_t))))
+      (setf-snd_seq_event-slot event 'data (mem-ref data :pointer))
+      (with-foreign-slots (((:pointer dest) (:pointer source))
+                           event
+                           (:struct snd_seq_event_t))
+        (with-foreign-slots (((:pointer port) (:pointer client))
+                             source (:struct snd_seq_addr_t))
+          (setf (mem-ref port :uchar) my-port))
+        (with-foreign-slots (((:pointer port) (:pointer client))
+                             dest (:struct snd_seq_addr_t))
+          (setf (mem-ref port :uchar) SND_SEQ_ADDRESS_UNKNOWN)
+          (setf (mem-ref client :uchar) SND_SEQ_ADDRESS_SUBSCRIBERS)))
+      (describe-event event)
+      (snd_seq_event_output *seq event)
+      (snd_seq_drain_output *seq))))
 
-          ;; (snd_seq_ev_set_source *event *my-port*)
-          ;; (snd_seq_ev_set_subs ev)
-          ;; snd_seq_ev_set_direct(ev);
-          ;; snd_seq_event_output(seq, ev);
-          ;; snd_seq_drain_output(seq);
-          (dump-event ev)
-          (print (describe-event ev))
-          (setf *errno* (snd_seq_event_output_direct *seq ev))
-          (foreign-funcall "strerror" :int *errno* :string))))))
 
 
 (defun init ()
