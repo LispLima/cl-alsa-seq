@@ -46,23 +46,21 @@
   (cffi:mem-ref *data (cond-lookup)))
 
 (defun describe-event (event)
-  (let* ((event-type (getf (mem-ref
-                            event '(:struct snd_seq_event_t))
-                           'type))
-         (*data (cffi:foreign-slot-pointer
-                 event
-                 '(:struct snd_seq_event_t) 'data))
-         (*dest (cffi:foreign-slot-pointer
-                 event
-                 '(:struct snd_seq_event_t) 'dest))
-         (*source (cffi:foreign-slot-pointer
-                   event
-                   '(:struct snd_seq_event_t) 'source)))
-    (list :source (mem-ref *source  '(:struct snd_seq_addr_t))
-          :dest (mem-ref *dest '(:struct snd_seq_addr_t))
-          :event-type (foreign-enum-keyword 'snd_seq_event_type
-                                            event-type)
-          :event-data (midi-data *data event-type))))
+  (with-foreign-slots ((type (:pointer data) queue (:pointer source) (:pointer dest)) event (:struct snd_seq_event_t))
+    (list :event-type ;; (foreign-enum-keyword 'snd_seq_event_type
+          ;;                       event-type)
+          type
+          :event-data ;; (midi-data *data event-type)
+          (list data (midi-data data type))
+          :queue ;; (getf (mem-ref event '(:struct snd_seq_event_t))
+          ;;       'queue)
+          queue
+          :source ;; (mem-ref *source '(:struct snd_seq_addr_t))
+          (list source (mem-ref dest '(:struct snd_seq_addr_t)))
+          :dest ;; (mem-ref *dest '(:struct snd_seq_addr_t))
+          (list dest (mem-ref (inc-pointer dest 2) '(:struct snd_seq_addr_t)))
+          )))
+
 
 (defmacro dump-event (*event)
   `(print (mem-ref ,*event '(:struct snd_seq_event_t))))
@@ -75,8 +73,56 @@
       (snd_seq_poll_descriptors *seq pfds npfds POLLIN)
       (assert (> (poll pfds npfds -1) 0))
       (snd_seq_event_input *seq *event)
-      (dump-event (mem-ref *event :pointer))
       (describe-event (mem-ref *event :pointer)))))
+
+(defun echo (&optional (*seq (mem-ref **seq :pointer)))
+  "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then echo that event"
+  (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
+    (cffi:with-foreign-objects ((pfds '(:struct pollfd) npfds)
+                                (*event '(:struct snd_seq_event_t)))
+      (snd_seq_poll_descriptors *seq pfds npfds POLLIN)
+      (assert (> (poll pfds npfds -1) 0))
+      (snd_seq_event_input *seq *event)
+      (let* ((event (mem-ref *event :pointer))
+             (*source (cffi:foreign-slot-pointer
+                       event '(:struct snd_seq_event_t) 'dest))
+             (*dest (inc-pointer (cffi:foreign-slot-pointer
+                       event '(:struct snd_seq_event_t) 'dest) 2)))
+        (dump-event *event)
+        (print (describe-event event))
+        ;; (snd_seq_ev_set_source *event *my-port*)
+        (setf (mem-ref (foreign-slot-pointer *source
+                                             '(:struct snd_seq_addr_t) 'port)
+                       :uchar)
+              *my-port*)
+      ;; (snd_seq_ev_set_subs ev)
+        (setf (mem-ref (foreign-slot-pointer *dest
+                                             '(:struct snd_seq_addr_t) 'client)
+                       :uchar)
+              SND_SEQ_ADDRESS_SUBSCRIBERS)
+        (setf (mem-ref (foreign-slot-pointer *dest
+                                             '(:struct snd_seq_addr_t) 'port)
+                       :uchar)
+              SND_SEQ_ADDRESS_UNKNOWN)
+      ;; snd_seq_ev_set_direct(ev);
+        (setf (mem-ref (foreign-slot-pointer *event
+                                             '(:struct snd_seq_event_t)
+                                             'queue) :uchar)
+              SND_SEQ_QUEUE_DIRECT)
+        (print (describe-event event))
+        (snd_seq_event_output *seq event)
+        (snd_seq_drain_output *seq)))))
+      ;; snd_seq_event_output(seq, ev);
+      ;; snd_seq_drain_output(seq);
+  ;; (with-snd_seq_addr (dest SND_SEQ_ADDRESS_SUBSCRIBERS
+  ;;                            SND_SEQ_ADDRESS_UNKNOWN)
+  ;;   (with-snd_seq_addr (source 0 my-port)
+  ;;     (with-snd_seq_ev_note (data note velocity channel 0 0)
+  ;;       (with-snd_seq_event (ev data dest source (null-pointer)
+  ;;                               SND_SEQ_QUEUE_DIRECT 0 0
+  ;;                               (FOREIGN-ENUM-VALUE
+  ;;                                'SND_SEQ_EVENT_TYPE :SND_SEQ_EVENT_NOTEON))
+
 
 (defcfun "memset" :pointer
   (*dest :pointer)

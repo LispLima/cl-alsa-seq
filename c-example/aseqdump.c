@@ -60,10 +60,24 @@ int main(int argc, char *argv[])
               event->source.client,
               event->source.port,
               event->type);
+      printf ("sending thing to %d, %d. Type = %d\n",
+              event->dest.client,
+              event->dest.port,
+              event->type);
+
       snd_seq_ev_set_source(event, my_port);
       snd_seq_ev_set_subs(event);
       snd_seq_ev_set_direct(event);
       
+      printf ("got thing from %d, %d. Type = %d\n",
+              event->source.client,
+              event->source.port,
+              event->type);
+      printf ("sending thing to %d, %d. Type = %d\n",
+              event->dest.client,
+              event->dest.port,
+              event->type);
+
       snd_seq_event_output_direct(seq, event);
       /* Should be equivalent to the two lines below */
       /* snd_seq_event_output(seq, event); */
