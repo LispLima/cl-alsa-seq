@@ -42,7 +42,7 @@
 (defun describe-event (event)
   (with-foreign-slots ((type (:pointer data) queue (:pointer source) (:pointer dest)) event (:struct snd_seq_event_t))
     (list :event-type
-          type
+          (cffi:foreign-enum-keyword 'snd_seq_event_type type)
           :event-data
           (list data (midi-data data type))
           :queue
@@ -114,32 +114,22 @@
                              ,slot)
          ,val))
 
-(defmacro setf-snd_seq_ev_note-slot (ptr slot val)
-  `(setf (foreign-slot-value ,ptr
-                             '(:struct snd_seq_ev_note_t)
-                             ,slot)
-         ,val))
-
 (defmacro with-snd_seq_ev_note ((var note velocity channel off_velocity duration)
                                 &body body)
-  `(with-foreign-object (,var '(:struct snd_seq_ev_note_t))
-     (clear-foreign-type ,var '(:struct snd_seq_ev_note_t))
-     (setf-snd_seq_ev_note-slot ,var 'note ,note)
-     (setf-snd_seq_ev_note-slot ,var 'velocity ,velocity)
-     (setf-snd_seq_ev_note-slot ,var 'channel ,channel)
-     (setf-snd_seq_ev_note-slot ,var 'off_velocity ,off_velocity)
-     (setf-snd_seq_ev_note-slot ,var 'duration ,duration)
+  `(let ((,var (convert-to-foreign (list 
+                                    'note ,note 
+                                    'velocity ,velocity
+                                    'channel ,channel
+                                    'off_velocity ,off_velocity
+                                    'duration ,duration
+                                    )
+                                   '(:struct snd_seq_ev_note_t))))
      ,@body))
 
 (defcvar "errno" :int)
 
-(defun send-note (velocity note channel note-type
-                     &optional (*seq (mem-ref **seq :pointer))
-                       (my-port *my-port*))
-  (assert (or (equal note-type :SND_SEQ_EVENT_NOTEOFF)
-              (equal note-type :SND_SEQ_EVENT_NOTEON)))
-  (with-snd_seq_ev_note (data note velocity channel 0 0)
-    (let ((event (convert-to-foreign (list 
+(defun send-midi (*seq my-port data note-type)
+  (let ((event (convert-to-foreign (list 
                                       'type (foreign-enum-value
                                              'snd_seq_event_type
                                              note-type)
@@ -159,7 +149,15 @@
           (setf (mem-ref client :uchar) SND_SEQ_ADDRESS_SUBSCRIBERS)))
       (describe-event event)
       (snd_seq_event_output *seq event)
-      (snd_seq_drain_output *seq))))
+      (snd_seq_drain_output *seq)))
+
+(defun send-note (velocity note channel note-type
+                     &optional (*seq (mem-ref **seq :pointer))
+                       (my-port *my-port*))
+  (assert (or (equal note-type :SND_SEQ_EVENT_NOTEOFF)
+              (equal note-type :SND_SEQ_EVENT_NOTEON)))
+  (with-snd_seq_ev_note (data note velocity channel 0 0)
+    (send-midi *seq my-port data note-type )))
 
 (defun send-note-on (velocity note channel
                      &optional (*seq (mem-ref **seq :pointer))
