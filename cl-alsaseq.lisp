@@ -41,7 +41,8 @@
 
 (defun describe-event (event)
   (with-foreign-slots ((type (:pointer data) queue (:pointer source) (:pointer dest)) event (:struct snd_seq_event_t))
-    (list :event-type
+    (list :pointer event
+          :event-type
           (cffi:foreign-enum-keyword 'snd_seq_event_type type)
           :event-data
           (list data (midi-data data type))
@@ -105,20 +106,19 @@
   (val :int)
   (*n :uchar))
 
+(defcfun "memcpy" :void
+  (*dest :pointer)
+  (*src :pointer)
+  (*n :uchar))
+
 (defun clear-foreign-type (*ev type)
   (memset *ev 0 (foreign-type-size type)))
 
-(defmacro setf-snd_seq_event-slot (ptr slot val)
-  `(setf (foreign-slot-value ,ptr
-                             '(:struct snd_seq_event_t)
-                             ,slot)
-         ,val))
-
 (defmacro with-snd_seq_ev_ctrl ((var channel unused param value)
                                 &body body)
+  (declare (ignore unused))
   `(let ((,var (convert-to-foreign (list
                                     'channel ,channel
-                                    'unused ,unused
                                     'param ,param
                                     'value ,value
                                     )
@@ -139,36 +139,34 @@
 
 (defcvar "errno" :int)
 
-(defun send-midi (*seq my-port data note-type)
-  (let ((event (convert-to-foreign (list
-                                      'type (foreign-enum-value
-                                             'snd_seq_event_type
-                                             note-type)
-                                      'queue SND_SEQ_QUEUE_DIRECT
+(defmacro with-midi-event ((var type data &key (queue SND_SEQ_QUEUE_DIRECT)) &body body)
+`(let ((,var (convert-to-foreign (list
+                                      'type ,type
+                                      'queue ,queue
                                       )
-                                     '(:struct snd_seq_event_t))))
-      (setf-snd_seq_event-slot event 'data (mem-ref data :pointer))
-      (with-foreign-slots (((:pointer dest) (:pointer source))
-                           event
-                           (:struct snd_seq_event_t))
-        (with-foreign-slots (((:pointer port) (:pointer client))
-                             source (:struct snd_seq_addr_t))
-          (setf (mem-ref port :uchar) my-port))
-        (with-foreign-slots (((:pointer port) (:pointer client))
-                             dest (:struct snd_seq_addr_t))
-          (setf (mem-ref port :uchar) SND_SEQ_ADDRESS_UNKNOWN)
-          (setf (mem-ref client :uchar) SND_SEQ_ADDRESS_SUBSCRIBERS)))
-      (describe-event event)
-      (snd_seq_event_output *seq event)
-      (snd_seq_drain_output *seq)))
+                                   '(:struct snd_seq_event_t))))
+   ,@body))
 
-(defun send-note (velocity note channel note-type
-                     &optional (*seq (mem-ref **seq :pointer))
-                       (my-port *my-port*))
-  (assert (or (equal note-type :SND_SEQ_EVENT_NOTEOFF)
-              (equal note-type :SND_SEQ_EVENT_NOTEON)))
-  (with-snd_seq_ev_note (data note velocity channel 0 0)
-    (send-midi *seq my-port data note-type )))
+(defun set-addr-slots (addr *port *client)
+  (with-foreign-slots (((:pointer port) (:pointer client))
+                             addr (:struct snd_seq_addr_t))
+          (setf (mem-ref port :uchar) *port )
+          (setf (mem-ref client :uchar) *client )))
+
+(defun send-midi (*seq my-port *data note-type)
+  (with-midi-event (event (foreign-enum-value
+                           'snd_seq_event_type
+                           note-type)
+                          data)
+    (with-foreign-slots (((:pointer dest) (:pointer source) (:pointer data))
+                         event
+                         (:struct snd_seq_event_t))
+      (set-addr-slots source my-port 0)
+      (set-addr-slots dest SND_SEQ_ADDRESS_UNKNOWN SND_SEQ_ADDRESS_SUBSCRIBERS)
+      (memcpy data *data (foreign-type-size '(:union snd_seq_event_data))))
+    (print (describe-event event))
+    (snd_seq_event_output *seq event)
+    (snd_seq_drain_output *seq)))
 
 (defun event-type-assert (type type-min type-max)
   (let ((type-value (foreign-enum-value 'snd_seq_event_type type)))
@@ -178,10 +176,16 @@
                  (< type-value (print (foreign-enum-value 'snd_seq_event_type
                                                    type-max)))))))
 
+(defun send-note (velocity note channel note-type
+                     &optional (*seq (mem-ref **seq :pointer))
+                       (my-port *my-port*))
+  (event-type-assert note-type :SND_SEQ_EVENT_NOTE :SND_SEQ_EVENT_CONTROLLER)
+  (with-snd_seq_ev_note (data note velocity channel 0 0)
+    (send-midi *seq my-port data note-type )))
+
 (defun send-ctrl (channel param value ctrl-type
                   &optional (*seq (mem-ref **seq :pointer))
                     (my-port *my-port*))
-  (print ctrl-type)
   (event-type-assert ctrl-type :SND_SEQ_EVENT_CONTROLLER :SND_SEQ_EVENT_SONGPOS)
   (with-snd_seq_ev_ctrl (data channel (null-pointer) param value)
     (send-midi *seq my-port data ctrl-type)))

@@ -144,7 +144,6 @@
 
 (cffi:defcstruct snd_seq_ev_ctrl_t
 	(channel :unsigned-char)
-	(unused :pointer)
 	(param :unsigned-int)
 	(value :int))
 
@@ -180,19 +179,19 @@
 	(d8 :pointer))
 
 (cffi:defcunion snd_seq_event_data
-	(note (:pointer (:struct snd_seq_ev_note_t)))
-	(control (:pointer (:struct snd_seq_ev_ctrl_t)))
-	(raw8 (:pointer (:struct snd_seq_ev_raw8_t)))
-	(raw32 (:pointer (:struct snd_seq_ev_raw32_t)))
-	(ext (:pointer (:struct snd_seq_ev_ext_t)))
-	(queue (:pointer (:struct snd_seq_ev_queue_control_t)))
+	(note (:struct snd_seq_ev_note_t))
+	(control (:struct snd_seq_ev_ctrl_t))
+	(raw8 (:struct snd_seq_ev_raw8_t))
+	(raw32 (:struct snd_seq_ev_raw32_t))
+	(ext (:struct snd_seq_ev_ext_t))
+	(queue (:struct snd_seq_ev_queue_control_t))
 	;; (time (:union snd_seq_timestamp_t))
 	(time :pointer)
-	(addr (:pointer (:struct snd_seq_addr_t)))
-	(connect (:pointer (:struct snd_seq_connect_t)))
-	(result (:pointer (:struct snd_seq_result_t))))
+	(addr (:struct snd_seq_addr_t))
+	(connect (:struct snd_seq_connect_t))
+	(result  (:struct snd_seq_result_t)))
 
-(cffi:defcstruct snd_seq_event_t 
+(cffi:defcstruct snd_seq_event_t
 	(type :unsigned-char)
 	(flags :unsigned-char)
 	(tag :unsigned-char)
@@ -203,7 +202,7 @@
 	;; (dest (:pointer (:struct snd_seq_addr_t)))
         (source (:pointer (:struct snd_seq_addr_t)) :offset 12)
 	(dest (:pointer (:struct snd_seq_addr_t)) :offset 14)
-	(data :pointer :offset 16)
+	(data (:union snd_seq_event_data) :offset 16)
         ;; (data (:union snd_seq_event_data))
         )
 
@@ -1157,7 +1156,7 @@
   (nr :int)
   (array :pointer))
 
-;; (defanonenum 
+;; (defanonenum
 ;; 	SND_SEQ_EVFLG_RESULT
 ;; 	SND_SEQ_EVFLG_NOTE
 ;; 	SND_SEQ_EVFLG_CONTROL
@@ -1175,11 +1174,11 @@
 ;; 	SND_SEQ_EVFLG_VARIABLE
 ;; 	SND_SEQ_EVFLG_VARUSR)
 
-;; (defanonenum 
+;; (defanonenum
 ;; 	SND_SEQ_EVFLG_NOTE_ONEARG
 ;; 	SND_SEQ_EVFLG_NOTE_TWOARG)
 
-;; (defanonenum 
+;; (defanonenum
 ;; 	SND_SEQ_EVFLG_QUEUE_NOARG
 ;; 	SND_SEQ_EVFLG_QUEUE_TICK
 ;; 	SND_SEQ_EVFLG_QUEUE_TIME
@@ -1303,5 +1302,3 @@
   (buf :pointer)
   (count :long)
   (ev :pointer))
-
-
