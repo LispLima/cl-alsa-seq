@@ -20,12 +20,12 @@
   (assert (null *my-port*))
   (setf *my-port*
         (snd_seq_create_simple_port (mem-ref **seq :pointer) name
-                                    (logior SND_SEQ_PORT_CAP_WRITE 
+                                    (logior SND_SEQ_PORT_CAP_WRITE
                                             SND_SEQ_PORT_CAP_SUBS_WRITE
                                             SND_SEQ_PORT_CAP_READ
                                             SND_SEQ_PORT_CAP_SUBS_READ
                                             )
-                                    (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC 
+                                    (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC
                                             SND_SEQ_PORT_TYPE_APPLICATION))))
 
 (defun cond-lookup-test (event-type-key)
@@ -114,10 +114,21 @@
                              ,slot)
          ,val))
 
+(defmacro with-snd_seq_ev_ctrl ((var channel unused param value)
+                                &body body)
+  `(let ((,var (convert-to-foreign (list
+                                    'channel ,channel
+                                    'unused ,unused
+                                    'param ,param
+                                    'value ,value
+                                    )
+                                   '(:struct snd_seq_ev_ctrl_t))))
+     ,@body))
+
 (defmacro with-snd_seq_ev_note ((var note velocity channel off_velocity duration)
                                 &body body)
-  `(let ((,var (convert-to-foreign (list 
-                                    'note ,note 
+  `(let ((,var (convert-to-foreign (list
+                                    'note ,note
                                     'velocity ,velocity
                                     'channel ,channel
                                     'off_velocity ,off_velocity
@@ -129,7 +140,7 @@
 (defcvar "errno" :int)
 
 (defun send-midi (*seq my-port data note-type)
-  (let ((event (convert-to-foreign (list 
+  (let ((event (convert-to-foreign (list
                                       'type (foreign-enum-value
                                              'snd_seq_event_type
                                              note-type)
@@ -158,6 +169,42 @@
               (equal note-type :SND_SEQ_EVENT_NOTEON)))
   (with-snd_seq_ev_note (data note velocity channel 0 0)
     (send-midi *seq my-port data note-type )))
+
+(defun event-type-assert (type type-min type-max)
+  (let ((type-value (foreign-enum-value 'snd_seq_event_type type)))
+    (print type-value)
+    (assert (and (>= type-value (print (foreign-enum-value 'snd_seq_event_type
+                                                    type-min)))
+                 (< type-value (print (foreign-enum-value 'snd_seq_event_type
+                                                   type-max)))))))
+
+(defun send-ctrl (channel param value ctrl-type
+                  &optional (*seq (mem-ref **seq :pointer))
+                    (my-port *my-port*))
+  (print ctrl-type)
+  (event-type-assert ctrl-type :SND_SEQ_EVENT_CONTROLLER :SND_SEQ_EVENT_SONGPOS)
+  (with-snd_seq_ev_ctrl (data channel (null-pointer) param value)
+    (send-midi *seq my-port data ctrl-type)))
+
+(defmacro def-event-func (event args &body body)
+  `(defun ,(intern (format nil "SEND-~A" event))
+       ,args ,@body))
+
+(mapcar
+ (lambda (event-type)
+   (let ((ctrl-type (intern (format nil "SND_SEQ_EVENT_~A" event-type) :keyword)))
+     (compile (intern (print (format nil "SEND-~A" event-type)))
+              (print `(lambda (channel param value
+                                            &optional (*seq (mem-ref **seq :pointer))
+                                            (my-port *my-port*))
+                 (send-ctrl channel param value ,ctrl-type *seq my-port))))))
+ '(:PGMCHANGE
+   :CHANPRESS
+   :PITCHBEND
+   :CONTROL
+   :NONREGPARAM
+   :REGPARAM))
+
 
 (defun send-note-on (velocity note channel
                      &optional (*seq (mem-ref **seq :pointer))
