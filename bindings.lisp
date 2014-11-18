@@ -98,8 +98,8 @@
 	(port :unsigned-char))
 
 (cffi:defcstruct snd_seq_connect_t
-	(sender (:pointer (:struct snd_seq_addr_t)))
-	(dest (:pointer (:struct snd_seq_addr_t))))
+	(sender (:struct snd_seq_addr_t))
+	(dest (:struct snd_seq_addr_t)))
 
 (cffi:defcstruct snd_seq_real_time_t
 	(tv_sec :unsigned-int)
@@ -107,7 +107,7 @@
 
 (cffi:defcunion snd_seq_timestamp_t
 	(tick :unsigned-int)
-	(time :pointer))
+	(time (:struct snd_seq_real_time_t)))
 
 (cl:defconstant SND_SEQ_TIME_STAMP_TICK (cl:ash 0 0))
 
@@ -174,7 +174,7 @@
 	(value :int)
 	(time (:union snd_seq_timestamp_t))
 	(position :unsigned-int)
-	(skew (:pointer (:struct snd_seq_queue_skew_t)))
+	(skew (:struct snd_seq_queue_skew_t))
 	(d32 :pointer)
 	(d8 :pointer))
 
@@ -185,8 +185,8 @@
 	(raw32 (:struct snd_seq_ev_raw32_t))
 	(ext (:struct snd_seq_ev_ext_t))
 	(queue (:struct snd_seq_ev_queue_control_t))
-	;; (time (:union snd_seq_timestamp_t))
-	(time :pointer)
+	(time (:union snd_seq_timestamp_t))
+	;; (time :pointer)
 	(addr (:struct snd_seq_addr_t))
 	(connect (:struct snd_seq_connect_t))
 	(result  (:struct snd_seq_result_t)))
@@ -196,14 +196,10 @@
 	(flags :unsigned-char)
 	(tag :unsigned-char)
 	(queue :unsigned-char)
-	;; (time (:union snd_seq_timestamp_t))
-        (time :pointer)
-        ;; (source (:pointer (:struct snd_seq_addr_t)))
-	;; (dest (:pointer (:struct snd_seq_addr_t)))
-        (source (:pointer (:struct snd_seq_addr_t)) :offset 12)
-	(dest (:pointer (:struct snd_seq_addr_t)) :offset 14)
-	(data (:union snd_seq_event_data) :offset 16)
-        ;; (data (:union snd_seq_event_data))
+	(time (:union snd_seq_timestamp_t))
+        (source (:struct snd_seq_addr_t))
+	(dest (:struct snd_seq_addr_t))
+	(data (:union snd_seq_event_data))
         )
 
 (cl:defconstant SND_SEQ_OPEN_OUTPUT 1)
