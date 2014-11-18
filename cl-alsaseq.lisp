@@ -54,10 +54,6 @@
           (list dest (mem-ref dest '(:struct snd_seq_addr_t)))
           )))
 
-
-(defmacro dump-event (*event)
-  `(print (mem-ref ,*event '(:struct snd_seq_event_t))))
-
 (defun recv (&optional (*seq (mem-ref **seq :pointer)))
   "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then return that event"
   (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
@@ -97,18 +93,13 @@
                                              '(:struct snd_seq_event_t)
                                              'queue) :uchar)
               SND_SEQ_QUEUE_DIRECT)
-        (print (describe-event event))
         (snd_seq_event_output *seq event)
-        (snd_seq_drain_output *seq)))))
+        (snd_seq_drain_output *seq)
+        (describe-event event)))))
 
 (defcfun "memset" :pointer
   (*dest :pointer)
   (val :int)
-  (*n :uchar))
-
-(defcfun "memcpy" :void
-  (*dest :pointer)
-  (*src :pointer)
   (*n :uchar))
 
 (defun clear-foreign-type (*ev type)
@@ -139,7 +130,7 @@
 
 (defcvar "errno" :int)
 
-(defmacro with-midi-event ((var type data &key (queue SND_SEQ_QUEUE_DIRECT)) &body body)
+(defmacro with-midi-event ((var type &key (queue SND_SEQ_QUEUE_DIRECT)) &body body)
 `(let ((,var (convert-to-foreign (list
                                       'type ,type
                                       'queue ,queue
@@ -153,28 +144,30 @@
           (setf (mem-ref port :uchar) *port )
           (setf (mem-ref client :uchar) *client )))
 
+(defcfun "memcpy" :void
+  (*dest :pointer)
+  (*src :pointer)
+  (*n :uchar))
+
 (defun send-midi (*seq my-port *data note-type)
   (with-midi-event (event (foreign-enum-value
                            'snd_seq_event_type
-                           note-type)
-                          data)
+                           note-type))
     (with-foreign-slots (((:pointer dest) (:pointer source) (:pointer data))
                          event
                          (:struct snd_seq_event_t))
       (set-addr-slots source my-port 0)
       (set-addr-slots dest SND_SEQ_ADDRESS_UNKNOWN SND_SEQ_ADDRESS_SUBSCRIBERS)
       (memcpy data *data (foreign-type-size '(:union snd_seq_event_data))))
-    (print (describe-event event))
     (snd_seq_event_output *seq event)
     (snd_seq_drain_output *seq)))
 
 (defun event-type-assert (type type-min type-max)
   (let ((type-value (foreign-enum-value 'snd_seq_event_type type)))
-    (print type-value)
-    (assert (and (>= type-value (print (foreign-enum-value 'snd_seq_event_type
-                                                    type-min)))
-                 (< type-value (print (foreign-enum-value 'snd_seq_event_type
-                                                   type-max)))))))
+    (assert (and (>= type-value (foreign-enum-value 'snd_seq_event_type
+                                                    type-min))
+                 (< type-value (foreign-enum-value 'snd_seq_event_type
+                                                   type-max))))))
 
 (defun send-note (velocity note channel note-type
                      &optional (*seq (mem-ref **seq :pointer))
@@ -194,20 +187,21 @@
   `(defun ,(intern (format nil "SEND-~A" event))
        ,args ,@body))
 
-(mapcar
- (lambda (event-type)
-   (let ((ctrl-type (intern (format nil "SND_SEQ_EVENT_~A" event-type) :keyword)))
-     (compile (intern (print (format nil "SEND-~A" event-type)))
-              (print `(lambda (channel param value
-                                            &optional (*seq (mem-ref **seq :pointer))
-                                            (my-port *my-port*))
-                 (send-ctrl channel param value ,ctrl-type *seq my-port))))))
- '(:PGMCHANGE
-   :CHANPRESS
-   :PITCHBEND
-   :CONTROL
-   :NONREGPARAM
-   :REGPARAM))
+(eval-when (:load-toplevel :compile-toplevel :execute)
+  (mapcar
+   (lambda (event-type)
+     (let ((ctrl-type (intern (format nil "SND_SEQ_EVENT_~A" event-type) :keyword)))
+       (compile (intern (format nil "SEND-~A" event-type))
+                `(lambda (channel param value
+                          &optional (*seq (mem-ref **seq :pointer))
+                            (my-port *my-port*))
+                   (send-ctrl channel param value ,ctrl-type *seq my-port)))))
+   '(:PGMCHANGE
+     :CHANPRESS
+     :PITCHBEND
+     :CONTROL
+     :NONREGPARAM
+     :REGPARAM)))
 
 
 (defun send-note-on (velocity note channel
