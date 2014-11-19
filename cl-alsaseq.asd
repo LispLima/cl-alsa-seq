@@ -5,8 +5,9 @@
   :description "CL bindings to alsa midi sequencer"
   :author "Rick Venn <richard.venn@gmail.com>"
   :license "GPL"
-  :depends-on (#:cffi #:calispel)
+  :depends-on (#:cffi #:calispel #:optima)
   :components ((:file "package")
                (:file "bindings")
                (:file "event-lookup")
-               (:file "cl-alsaseq")))
+               (:file "cl-alsaseq")
+               (:file "midi-writer")))

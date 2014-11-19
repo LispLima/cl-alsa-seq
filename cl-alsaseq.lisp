@@ -27,12 +27,17 @@
                                             )
                                     (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC
                                             SND_SEQ_PORT_TYPE_APPLICATION))))
+(defun ev-key-int (key)
+  (foreign-enum-value
+   'snd_seq_event_type key))
+
+(defun ev-int-key (int)
+  (foreign-enum-keyword 'snd_seq_event_type int))
 
 (defun cond-lookup-test (event-type-key)
   "Helper function for debugging cond-lookup macro e.g
 (cond-lookup-test :snd_seq_event_noteon)"
-  (let ((event-type (FOREIGN-ENUM-VALUE
-                     'SND_SEQ_EVENT_TYPE event-type-key)))
+  (let ((event-type (ev-key-int event-type-key)))
     (cond-lookup)))
 
 (defun midi-data (*data event-type)
@@ -41,18 +46,17 @@
 
 (defun describe-event (event)
   (with-foreign-slots ((type (:pointer data) queue (:pointer source) (:pointer dest)) event (:struct snd_seq_event_t))
-    (list :pointer event
+    (list ;; :pointer event
           :event-type
-          (cffi:foreign-enum-keyword 'snd_seq_event_type type)
+          (ev-int-key type)
           :event-data
-          (list data (midi-data data type))
-          :queue
-          queue
+          (midi-data data type)
           :source
-          (list source (mem-ref source '(:struct snd_seq_addr_t)))
+          (list ;; source
+           (mem-ref source '(:struct snd_seq_addr_t)))
           :dest
-          (list dest (mem-ref dest '(:struct snd_seq_addr_t)))
-          )))
+          (list ;; dest
+           (mem-ref dest '(:struct snd_seq_addr_t))))))
 
 (defun recv (&optional (*seq (mem-ref **seq :pointer)))
   "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then return that event"
@@ -150,8 +154,7 @@
   (*n :uchar))
 
 (defun send-midi (*seq my-port *data note-type)
-  (with-midi-event (event (foreign-enum-value
-                           'snd_seq_event_type
+  (with-midi-event (event (ev-key-int
                            note-type))
     (with-foreign-slots (((:pointer dest) (:pointer source) (:pointer data))
                          event
@@ -221,3 +224,11 @@
 (defun deinit ()
   (deinit-seq)
   (setf *my-port* nil))
+
+(defvar *in-chan* (make-instance 'calispel:channel
+                                 :buffer (MAKE-INSTANCE 'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
+                                                        :CAPACITY 10)))
+
+(defvar *in-chan* (make-instance 'calispel:channel
+                                 :buffer (MAKE-INSTANCE 'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
+                                                        :CAPACITY 10)))
