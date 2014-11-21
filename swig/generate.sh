@@ -2,14 +2,14 @@
 
 #
 # This script can be used to regenerate the bindings.lisp file using
-# SWIG. 
+# SWIG.
 #
 
-swig -cffi -module bindings -noswig-lisp -o bindings.lisp bindings.i 
+swig -cffi -module bindings -noswig-lisp -o ../bindings.lisp bindings.i
 # sed -i 's|(\([0-9]\+ [0-9]\+\))|\1|' bindings.lisp
 
 # # ------------------------------------------------------------------------------
-# # make our exports 
+# # make our exports
 # # ------------------------------------------------------------------------------
 # echo -e "(in-package :nanomsg)\n" > exports.lisp
 # cat bindings.lisp | \
