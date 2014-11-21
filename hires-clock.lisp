@@ -1,6 +1,10 @@
 (in-package :cl-alsaseq)
 
-(defvar *tick-chan*  (make-nonblock-buf-channel))
+(defvar *master-tick-chan* (make-nonblock-buf-channel))
+
+(defvar *slave-tick-chan* (make-nonblock-buf-channel))
+
+(defvar *tick-chan*  *master-tick-chan*)
 
 (defvar *tock-chan*  (make-nonblock-buf-channel))
 
@@ -56,8 +60,18 @@
        (setf next (tick))
        (setf intvl (/ (- next this) 4000)))))
 
-(defvar *tock-thread* (bt:make-thread #'tocker :name "96ppqn clock"))
+(defvar *tock-thread* nil)
 
-(defun reset-hires ()
-  (bt:destroy-thread *tock-thread*)
+(defun start-hires ()
+  (assert (null *tock-thread*))
   (setf *tock-thread* (bt:make-thread #'tocker :name "96ppqn clock")))
+
+(defun stop-hires ()
+  (bt:destroy-thread *tock-thread*)
+  (setf *tock-thread* nil))
+
+(defun set-master ()
+  (setf *tick-chan* *master-tick-chan*))
+
+(defun set-slave ()
+  (setf *tick-chan* *slave-tick-chan*))
