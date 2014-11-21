@@ -1,10 +1,6 @@
 (in-package :cl-alsaseq)
 
-(defun make-nonblock-buf-channel (&optional (queue 10))
-  (make-instance 'calispel:channel
-                 :buffer (MAKE-INSTANCE
-                          'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
-                          :CAPACITY queue)))
+
 (defvar *ticks* 0)
 
 (defun track-songpos (event)
@@ -73,7 +69,7 @@
 
 (defparameter *default-tock-ev*
   '(:event-type :noteon :note-number 70))
-  
+
 (defun make-simple-metro (bars
                           &rest rest
                           &key (tick-ev *default-tick-ev*)

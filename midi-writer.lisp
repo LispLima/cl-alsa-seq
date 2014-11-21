@@ -29,3 +29,9 @@
 
 (defun parse-echo ()
   (send-event (recv)))
+
+(defun make-nonblock-buf-channel (&optional (queue 10))
+  (make-instance 'calispel:channel
+                 :buffer (MAKE-INSTANCE
+                          'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
+                          :CAPACITY queue)))
