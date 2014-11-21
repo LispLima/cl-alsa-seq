@@ -2,31 +2,57 @@
 
 (load-foreign-library "libasound.so")
 
-(defvar **seq nil)
+(defun open-seq (client-name)
+  (let ((seq (foreign-alloc :pointer)))
+    (snd_seq_open seq "default" SND_SEQ_OPEN_DUPLEX 0)
+    (snd_seq_set_client_name (mem-ref seq :pointer) client-name)
+    seq))
 
-(defun init-seq (client-name)
-  (assert (null **seq))
-  (setf **seq (foreign-alloc :pointer))
-  (snd_seq_open **seq "default" SND_SEQ_OPEN_DUPLEX 0)
-  (snd_seq_set_client_name (mem-ref **seq :pointer) client-name))
+(defun close-seq (seq)
+  (snd_seq_close (mem-ref seq :pointer))
+  (foreign-free seq)
+  (setf seq nil))
 
-(defun deinit-seq ()
-  (snd_seq_close (mem-ref **seq :pointer))
-  (foreign-free **seq)
-  (setf **seq nil))
+(defun open-port (name seq)
+  (snd_seq_create_simple_port seq name
+                              (logior SND_SEQ_PORT_CAP_WRITE
+                                      SND_SEQ_PORT_CAP_SUBS_WRITE
+                                      SND_SEQ_PORT_CAP_READ
+                                      SND_SEQ_PORT_CAP_SUBS_READ
+                                      )
+                              (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC
+                                      SND_SEQ_PORT_TYPE_APPLICATION)))
 
-(defvar *my-port* nil)
-(defun create-port (name)
-  (assert (null *my-port*))
-  (setf *my-port*
-        (snd_seq_create_simple_port (mem-ref **seq :pointer) name
-                                    (logior SND_SEQ_PORT_CAP_WRITE
-                                            SND_SEQ_PORT_CAP_SUBS_WRITE
-                                            SND_SEQ_PORT_CAP_READ
-                                            SND_SEQ_PORT_CAP_SUBS_READ
-                                            )
-                                    (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC
-                                            SND_SEQ_PORT_TYPE_APPLICATION))))
+(defvar *seq* nil)
+(defvar *my-ports* nil)
+
+(defun simple-init ()
+  (assert (null *seq*))
+  (assert (null *my-ports*))
+  (setf *seq* (open-seq "Main"))
+  (setf *my-ports*
+        (loop for i from 1 to 3
+           collect (open-port (format nil "port~A" i)
+                              *seq*))))
+
+(defun simple-deinit ()
+  (assert *seq*)
+  (close-seq *seq*)
+  (setf *my-ports* nil))
+
+(defmacro! with-alsa ((seq &key (client-name "CL")
+                          (ports-var (gensym)) (num-ports 1))
+                     &body body)
+  `(let* ((,g!seq (open-seq ,client-name))
+          (,seq (mem-ref ,g!seq :pointer))
+          (,ports-var (loop for i from 1 to ,num-ports
+                         collect (open-port (format nil "port~A" i)
+                                            ,seq))))
+     ,ports-var
+     (unwind-protect
+          (progn ,@body)
+       (close-seq ,g!seq))))
+
 (defun ev-key-int (key)
   (foreign-enum-value
    'snd_seq_event_type key))
@@ -58,7 +84,7 @@
           (list ;; dest
            (mem-ref dest '(:struct snd_seq_addr_t))))))
 
-(defun recv (&optional (*seq (mem-ref **seq :pointer)))
+(defun recv (*seq)
   "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then return that event"
   (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
     (cffi:with-foreign-objects ((pfds '(:struct pollfd) npfds)
@@ -68,7 +94,7 @@
       (snd_seq_event_input *seq *event)
       (describe-event (mem-ref *event :pointer)))))
 
-(defun echo (&optional (*seq (mem-ref **seq :pointer)))
+(defun echo (*seq port)
   "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then echo that event"
   (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
     (cffi:with-foreign-objects ((pfds '(:struct pollfd) npfds)
@@ -84,7 +110,7 @@
         (setf (mem-ref (foreign-slot-pointer *source
                                              '(:struct snd_seq_addr_t) 'port)
                        :uchar)
-              *my-port*)
+              port)
         (setf (mem-ref (foreign-slot-pointer *dest
                                              '(:struct snd_seq_addr_t) 'client)
                        :uchar)
@@ -173,15 +199,13 @@
                                                    type-max))))))
 
 (defun send-note (velocity note channel note-type
-                     &optional (*seq (mem-ref **seq :pointer))
-                       (my-port *my-port*))
+                     *seq my-port)
   (event-type-assert note-type :SND_SEQ_EVENT_NOTE :SND_SEQ_EVENT_CONTROLLER)
   (with-snd_seq_ev_note (data note velocity channel 0 0)
     (send-midi *seq my-port data note-type )))
 
 (defun send-ctrl (channel param value ctrl-type
-                  &optional (*seq (mem-ref **seq :pointer))
-                    (my-port *my-port*))
+                  *seq my-port)
   (event-type-assert ctrl-type :SND_SEQ_EVENT_CONTROLLER :SND_SEQ_EVENT_SONGPOS)
   (with-snd_seq_ev_ctrl (data channel (null-pointer) param value)
     (send-midi *seq my-port data ctrl-type)))
@@ -196,8 +220,7 @@
      (let ((ctrl-type (intern (format nil "SND_SEQ_EVENT_~A" event-type) :keyword)))
        (compile (intern (format nil "SEND-~A" event-type))
                 `(lambda (channel param value
-                          &optional (*seq (mem-ref **seq :pointer))
-                            (my-port *my-port*))
+                          *seq my-port)
                    (send-ctrl channel param value ,ctrl-type *seq my-port)))))
    '(:PGMCHANGE
      :CHANPRESS
@@ -208,27 +231,9 @@
 
 
 (defun send-note-on (velocity note channel
-                     &optional (*seq (mem-ref **seq :pointer))
-                       (my-port *my-port*))
+                     *seq my-port)
   (send-note velocity note channel :SND_SEQ_EVENT_NOTEON *seq my-port))
 
 (defun send-note-off (velocity note channel
-                     &optional (*seq (mem-ref **seq :pointer))
-                       (my-port *my-port*))
+                      *seq my-port)
   (send-note velocity note channel :SND_SEQ_EVENT_NOTEOFF *seq my-port))
-
-(defun init ()
-  (init-seq "foo")
-  (create-port "bar"))
-
-(defun deinit ()
-  (deinit-seq)
-  (setf *my-port* nil))
-
-(defvar *in-chan* (make-instance 'calispel:channel
-                                 :buffer (MAKE-INSTANCE 'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
-                                                        :CAPACITY 10)))
-
-(defvar *in-chan* (make-instance 'calispel:channel
-                                 :buffer (MAKE-INSTANCE 'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
-                                                        :CAPACITY 10)))

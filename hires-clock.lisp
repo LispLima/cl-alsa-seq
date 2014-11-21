@@ -28,7 +28,7 @@
 (defun stop-master-clock ()
   (bt:destroy-thread *tick-thread*)
   (setf *tick-thread* nil))
-                           
+
 (defun bpm-test (&optional (ppqn 24) (clock-chan *tick-chan*))
   (loop repeat 20 do
          (? clock-chan 0.1));; clear buffer of stale ticks
