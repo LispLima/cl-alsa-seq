@@ -22,4 +22,3 @@
                                           (cadr rest))
                        (lookup (cddr rest))))))
     `(cond ,@(reverse (lookup (lookup-table))))))
-
