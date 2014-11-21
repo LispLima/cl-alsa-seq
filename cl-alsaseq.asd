@@ -10,4 +10,5 @@
                (:file "bindings")
                (:file "event-lookup")
                (:file "cl-alsaseq")
-               (:file "midi-writer")))
+               (:file "midi-writer")
+               (:file "hires-clock")))
