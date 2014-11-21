@@ -11,4 +11,5 @@
                (:file "event-lookup")
                (:file "cl-alsaseq")
                (:file "midi-writer")
-               (:file "hires-clock")))
+               (:file "hires-clock")
+               (:file "midi-reader")))

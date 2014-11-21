@@ -18,11 +18,11 @@
                               (apply #'logior
                                      (append
                                       (match direction
-                                        ((or :duplex :output)
+                                        ((or :duplex :input)
                                          (list SND_SEQ_PORT_CAP_WRITE
                                                SND_SEQ_PORT_CAP_SUBS_WRITE)))
                                       (match direction
-                                        ((or :duplex :input)
+                                        ((or :duplex :output)
                                          (list SND_SEQ_PORT_CAP_READ
                                                SND_SEQ_PORT_CAP_SUBS_READ)))))
                               (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC
@@ -45,15 +45,9 @@
   (close-seq *seq*)
   (setf *my-ports* nil))
 
-(defmacro! with-alsa ((seq &key (client-name "CL")
-                           (ports-var (gensym)) (num-ports 1))
-                      &body body)
-  `(let* ((,g!seq (open-seq ,client-name))
-          (,seq (mem-ref ,g!seq :pointer))
-          (,ports-var (loop for i from 1 to ,num-ports
-                         collect (open-port (format nil "port~A" i)
-                                            ,seq))))
-     ,ports-var
+(defmacro! with-alsa ((seq &key (name "CL")) &body body)
+  `(let* ((,g!seq (open-seq ,name))
+          (,seq (mem-ref ,g!seq :pointer)))
      (unwind-protect
           (progn ,@body)
        (close-seq ,g!seq))))
