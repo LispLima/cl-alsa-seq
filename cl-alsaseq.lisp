@@ -46,8 +46,8 @@
   (setf *my-ports* nil))
 
 (defmacro! with-alsa ((seq &key (client-name "CL")
-                          (ports-var (gensym)) (num-ports 1))
-                     &body body)
+                           (ports-var (gensym)) (num-ports 1))
+                      &body body)
   `(let* ((,g!seq (open-seq ,client-name))
           (,seq (mem-ref ,g!seq :pointer))
           (,ports-var (loop for i from 1 to ,num-ports
@@ -78,16 +78,16 @@
 (defun describe-event (event)
   (with-foreign-slots ((type (:pointer data) queue (:pointer source) (:pointer dest)) event (:struct snd_seq_event_t))
     (list ;; :pointer event
-          :event-type
-          (ev-int-key type)
-          :event-data
-          (midi-data data type)
-          :source
-          (list ;; source
-           (mem-ref source '(:struct snd_seq_addr_t)))
-          :dest
-          (list ;; dest
-           (mem-ref dest '(:struct snd_seq_addr_t))))))
+     :event-type
+     (ev-int-key type)
+     :event-data
+     (midi-data data type)
+     :source
+     (list ;; source
+      (mem-ref source '(:struct snd_seq_addr_t)))
+     :dest
+     (list ;; dest
+      (mem-ref dest '(:struct snd_seq_addr_t))))))
 
 (defun recv (*seq)
   "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then return that event"
@@ -111,7 +111,7 @@
              (*source (cffi:foreign-slot-pointer
                        event '(:struct snd_seq_event_t) 'source))
              (*dest (cffi:foreign-slot-pointer
-                       event '(:struct snd_seq_event_t) 'dest)))
+                     event '(:struct snd_seq_event_t) 'dest)))
         (setf (mem-ref (foreign-slot-pointer *source
                                              '(:struct snd_seq_addr_t) 'port)
                        :uchar)
@@ -166,18 +166,18 @@
 (defcvar "errno" :int)
 
 (defmacro with-midi-event ((var type &key (queue SND_SEQ_QUEUE_DIRECT)) &body body)
-`(let ((,var (convert-to-foreign (list
-                                      'type ,type
-                                      'queue ,queue
-                                      )
+  `(let ((,var (convert-to-foreign (list
+                                    'type ,type
+                                    'queue ,queue
+                                    )
                                    '(:struct snd_seq_event_t))))
-   ,@body))
+     ,@body))
 
 (defun set-addr-slots (addr *port *client)
   (with-foreign-slots (((:pointer port) (:pointer client))
-                             addr (:struct snd_seq_addr_t))
-          (setf (mem-ref port :uchar) *port )
-          (setf (mem-ref client :uchar) *client )))
+                       addr (:struct snd_seq_addr_t))
+    (setf (mem-ref port :uchar) *port )
+    (setf (mem-ref client :uchar) *client )))
 
 (defcfun "memcpy" :void
   (*dest :pointer)
@@ -204,7 +204,7 @@
                                                    type-max))))))
 
 (defun send-note (velocity note channel note-type
-                     *seq my-port)
+                  *seq my-port)
   (event-type-assert note-type :SND_SEQ_EVENT_NOTE :SND_SEQ_EVENT_CONTROLLER)
   (with-snd_seq_ev_note (data note velocity channel 0 0)
     (send-midi *seq my-port data note-type )))
