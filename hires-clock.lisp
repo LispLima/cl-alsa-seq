@@ -1,11 +1,5 @@
 (in-package :cl-alsaseq)
 
-(defun make-nonblock-buf-channel (&optional (queue 10))
-  (make-instance 'calispel:channel
-                 :buffer (MAKE-INSTANCE
-                          'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
-                          :CAPACITY queue)))
-
 (defvar *tick-chan*  (make-nonblock-buf-channel))
 
 (defvar *tock-chan*  (make-nonblock-buf-channel))
