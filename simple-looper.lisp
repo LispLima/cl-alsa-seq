@@ -105,7 +105,7 @@
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
-
-(defvar *loop-stack* (make-array +n-loops+
-                                 :initial-contents (loop repeat +n-loops+
-                                                     collect (new-m-loop))))
+(defvar *loop-stack* (list :loops (loop repeat +n-loops+
+                                     collect (new-m-loop))
+                           :metro (make-jazz-metro 2)
+                           :jazz-metro (make-simple-metro 2)))
