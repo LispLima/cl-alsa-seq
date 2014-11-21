@@ -13,13 +13,18 @@
   (foreign-free seq)
   (setf seq nil))
 
-(defun open-port (name seq)
+(defun open-port (name seq &optional (direction :duplex))
   (snd_seq_create_simple_port seq name
-                              (logior SND_SEQ_PORT_CAP_WRITE
-                                      SND_SEQ_PORT_CAP_SUBS_WRITE
-                                      SND_SEQ_PORT_CAP_READ
-                                      SND_SEQ_PORT_CAP_SUBS_READ
-                                      )
+                              (apply #'logior
+                                     (append
+                                      (match direction
+                                        ((or :duplex :output)
+                                         (list SND_SEQ_PORT_CAP_WRITE
+                                               SND_SEQ_PORT_CAP_SUBS_WRITE)))
+                                      (match direction
+                                        ((or :duplex :input)
+                                         (list SND_SEQ_PORT_CAP_READ
+                                               SND_SEQ_PORT_CAP_SUBS_READ)))))
                               (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC
                                       SND_SEQ_PORT_TYPE_APPLICATION)))
 
