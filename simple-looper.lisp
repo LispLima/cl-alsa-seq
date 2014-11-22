@@ -105,7 +105,7 @@
     (let ((port (open-port "foo" seq)))
       (loop (pri-alt ((? *tock-chan* tick)
                       (mapcar (lambda (event)
-                                (send-event (print event) seq port))
+                                (send-event event seq port))
                               (loop-read my-mloop))
                       (track-songpos tick my-mloop))
                      ((? *midi-in-chan* event) (loop-write-gesture
