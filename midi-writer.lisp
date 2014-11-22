@@ -26,6 +26,5 @@
      (send-ctrl channel param value event-type seq port))
      (_ (format t "unknown event ~S~%" description))))
 
-
 (defun parse-echo (seq port)
   (send-event (recv seq) seq port))

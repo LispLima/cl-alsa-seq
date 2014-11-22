@@ -38,11 +38,12 @@
   (setf *my-ports*
         (loop for i from 1 to 3
            collect (open-port (format nil "port~A" i)
-                              *seq*))))
+                              (mem-ref *seq* :pointer)))))
 
 (defun simple-deinit ()
   (assert *seq*)
   (close-seq *seq*)
+  (setf *seq* nil)
   (setf *my-ports* nil))
 
 (defmacro! with-alsa ((seq &key (name "CL")) &body body)

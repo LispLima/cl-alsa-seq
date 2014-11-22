@@ -97,25 +97,27 @@
 (defun clear-dumb-loop ()
   (setf *my-mloop* (make-fixed-loop 2)))
 
-(defun run-dumb-loop (&optional (my-mloop *my-mloop*))
+(defun run-dumb-loop (&key seq (mloop *my-mloop*))
   (check-helper-threads)
-  (drain-channel *midi-in-chan*)
-  (with-alsa (seq)
-    (let ((port (open-port "foo" seq)))
-      (loop (pri-alt ((? *tock-chan* tick)
-                      (mapcar (lambda (event)
-                                (send-event event seq port))
-                              (loop-read my-mloop))
-                      (track-songpos tick my-mloop))
-                     ((? *midi-in-chan* event) (loop-write-gesture
-                                                  event
-                                                  my-mloop)))))))
+  ;; (drain-channel *midi-in-chan*)
+  (let ((port 0;; (open-port "foo" seq)
+          ))
+    (loop (pri-alt ((? *tock-chan* tick)
+                    (mapcar (lambda (event)
+                              (send-event event seq port))
+                            (loop-read mloop))
+                    (track-songpos tick mloop))
+                   ((? *midi-in-chan* event) (loop-write-gesture
+                                                event
+                                                mloop))))))
 
 (defparameter *default-tick-ev*
-  '(:event-type :noteon :note-number 69))
+  '((:event-type :snd_seq_event_noteon
+     :EVENT-DATA (VELOCITY 127 NOTE 46 CHANNEL 0))))
 
 (defparameter *default-tock-ev*
-  '(:event-type :noteon :note-number 70))
+  '((:event-type :snd_seq_event_noteon
+     :EVENT-DATA (VELOCITY 80 NOTE 46 CHANNEL 0))))
 
 (defun make-simple-metro (bars
                           &rest rest
