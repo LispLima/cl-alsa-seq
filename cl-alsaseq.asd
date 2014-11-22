@@ -10,6 +10,7 @@
                (:file "bindings")
                (:file "event-lookup")
                (:file "cl-alsaseq")
+               (:file "midi-reader")
                (:file "midi-writer")
                (:file "hires-clock")
-               (:file "midi-reader")))
+               (:file "simple-looper")))
