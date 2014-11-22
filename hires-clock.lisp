@@ -62,11 +62,11 @@
 
 (defvar *tock-thread* nil)
 
-(defun start-hires ()
+(defun start-hires-clock ()
   (assert (null *tock-thread*))
   (setf *tock-thread* (bt:make-thread #'tocker :name "96ppqn clock")))
 
-(defun stop-hires ()
+(defun stop-hires-clock ()
   (bt:destroy-thread *tock-thread*)
   (setf *tock-thread* nil))
 

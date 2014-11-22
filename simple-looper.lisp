@@ -6,6 +6,16 @@
 (defconstant +default-loop-res+ 96)
 (defconstant +default-loop-len+ 8)
 
+(defun start-helper-threads ()
+  (start-simple-midi-reader)
+  (start-master-clock)
+  (start-hires-clock))
+
+(defun stop-helper-threads ()
+  (stop-simple-midi-reader)
+  (stop-master-clock)
+  (stop-hires-clock))
+
 (defun null-trigger ()
   (lambda (event)
     (declare (ignore event))
@@ -64,6 +74,11 @@
     ((plist :event-type (or :snd_seq_event_noteon
                            :snd_seq_event_noteoff))
      (loop-write *ticks* event *my-mloop*))))
+
+;; (defun run-dumb-loop ()
+;;   (assert (and *
+;;   (with-alsa (seq)
+;;     (
 
 (defparameter *default-tick-ev*
   '(:event-type :noteon :note-number 69))
