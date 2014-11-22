@@ -6,15 +6,29 @@
 (defconstant +default-loop-res+ 96)
 (defconstant +default-loop-len+ 8)
 
+(defun inspect-helper-threads ()
+  (list '*midi-in-thread* *midi-in-thread*
+        '*tick-thread* *tick-thread*
+        '*tock-thread* *tock-thread*))
+
 (defun start-helper-threads ()
   (start-simple-midi-reader)
   (start-master-clock)
-  (start-hires-clock))
+  (start-hires-clock)
+  (inspect-helper-threads))
+
+(defun check-helper-threads ()
+  (alexandria:doplist
+      (key val (inspect-helper-threads))
+    (if (null val)
+        (warn "Helper thread ~A not running" key))))
 
 (defun stop-helper-threads ()
+  (check-helper-threads)
   (stop-simple-midi-reader)
   (stop-master-clock)
-  (stop-hires-clock))
+  (stop-hires-clock)
+  (inspect-helper-threads))
 
 (defun null-trigger ()
   (lambda (event)
@@ -38,47 +52,65 @@
     (setf (getf newloop :seq) (make-array (/ (* bars major 4 res) minor) :initial-element nil))
     newloop))
 
-(defun track-songpos (event)
-  (match event
-    ((plist :event-type :snd_seq_event_clock)
-     (progn
-       (incf *ticks*)
-       (multiple-value-bind (quarters rem)
-           (floor *ticks* 24)
-         (if (= 0 rem)
-             (print quarters)))))
-    ((plist :event-type :snd_seq_event_songpos
-            :event-data (plist value 16ths))
-     (progn
-       (format t "~%seek to beat ~A~%" (/ 16ths 4.0))
-       (setf *ticks* (* 6 16ths))))))
+(defun track-songpos (event loop)
+  (symbol-macrolet ((pos (getf loop :pos)))
+    (match event
+      ((or (plist :event-type :snd_seq_event_clock)
+           "tack" "tock")
+       (progn
+         (incf pos)
+         (multiple-value-bind (quarters rem)
+             (floor pos 96)
+           (if (= 0 rem)
+               (print quarters)))))
+      ((plist :event-type :snd_seq_event_songpos
+              :event-data (plist value 16ths))
+       (progn
+         (format t "~%seek to beat ~A~%" (/ 16ths 4.0))
+         (setf pos (* 24 16ths)))))))
 
-(defmacro mloop-ref (mloop pos)
-  `(aref (getf ,mloop :seq) (nth-value 1 (floor ,pos (length ,mloop)))))
+;; (defmacro! mloop-ref (mloop pos)
+;;   `(aref (getf ,mloop :seq)
+;;          (nth-value 1 (floor ,pos
+;;                              (length (getf ,mloop :seq))))))
 
-(defun loop-read (ticks mloop)
-  (mloop-ref mloop ticks))
+(defun mloop-idx (mloop)
+  (nth-value 1 (floor (getf mloop :pos)
+                      (length (getf mloop :seq)))))
 
-(defun loop-write (ticks event mloop)
-  (setf (mloop-ref mloop ticks)
-        (cons event (mloop-ref mloop ticks))))
+(defun loop-read (mloop)
+  (aref (getf mloop :seq)
+        (mloop-idx mloop)))
+
+(defun loop-write (event mloop)
+  (let* ((ticks (mloop-idx mloop))
+         (seq (getf mloop :seq)))
+    (setf (aref seq ticks)
+          (cons event (aref seq ticks)))))
+
+(defun loop-write-gesture (event mloop)
+  (if-gesture event
+    (loop-write event mloop)))
 
 (defvar *my-mloop* (make-fixed-loop 2))
 
-(defun dumb-loop (event seq)
-  (track-songpos event)
-  (mapcar (lambda (event)
-            (send-event event seq 0))
-          (loop-read *ticks* *my-mloop*))
-  (match event
-    ((plist :event-type (or :snd_seq_event_noteon
-                           :snd_seq_event_noteoff))
-     (loop-write *ticks* event *my-mloop*))))
+(defun clear-dumb-loop ()
+  (setf *my-mloop* (make-fixed-loop 2)))
 
-;; (defun run-dumb-loop ()
-;;   (assert (and *
-;;   (with-alsa (seq)
-;;     (
+(defun run-dumb-loop (&optional (my-mloop *my-mloop*))
+  (check-helper-threads)
+  (loop repeat 10
+     do (? *midi-in-chan* 0.01))
+  (with-alsa (seq)
+    (let ((port (open-port "foo" seq)))
+      (loop (pri-alt ((? *tock-chan* tick)
+                      (mapcar (lambda (event)
+                                (send-event (print event) seq port))
+                              (loop-read my-mloop))
+                      (track-songpos tick my-mloop))
+                     ((? *midi-in-chan* event) (loop-write-gesture
+                                                  event
+                                                  my-mloop)))))))
 
 (defparameter *default-tick-ev*
   '(:event-type :noteon :note-number 69))

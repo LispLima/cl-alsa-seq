@@ -20,7 +20,7 @@
 (defun ticker ()
   "optional master clock"
   (loop
-     (! *tick-chan* "tick")
+     (! *master-tick-chan* "tick")
      (sleep *tick-time*)))
 
 (defvar *tick-thread* nil)
