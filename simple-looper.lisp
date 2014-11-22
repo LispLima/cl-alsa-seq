@@ -99,8 +99,7 @@
 
 (defun run-dumb-loop (&optional (my-mloop *my-mloop*))
   (check-helper-threads)
-  (loop repeat 10
-     do (? *midi-in-chan* 0.01))
+  (drain-channel *midi-in-chan*)
   (with-alsa (seq)
     (let ((port (open-port "foo" seq)))
       (loop (pri-alt ((? *tock-chan* tick)

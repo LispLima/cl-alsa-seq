@@ -6,6 +6,11 @@
                           'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
                           :CAPACITY queue)))
 
+(defun drain-channel (chan)
+  (let ((buffer (calispel::buffer chan)))
+    (loop repeat (jpl-queues:capacity buffer)
+       do (jpl-queues:dequeue buffer))))
+
 (define-condition stop-thread (error)
   ())
 
