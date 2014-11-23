@@ -75,11 +75,11 @@
   (setf *my-mloop* (make-fixed-loop 2)))
 
 (defun run-dumb-loop (&key seq (mloop *my-mloop*))
-  (check-helper-threads)
+  (check-midihelper)
   (drain-channel *midi-in-chan*)
   (let ((port 0;; (open-port "foo" seq)
           ))
-    (loop (pri-alt ((? *tock-chan* tick)
+    (loop (pri-alt ((? *clock-chan* tick)
                     (mapcar (lambda (event)
                               (send-event event seq port))
                             (loop-read mloop))

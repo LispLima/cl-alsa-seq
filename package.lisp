@@ -29,7 +29,7 @@
            ))
 
 (defpackage #:cl-alsaseq.util
-  (:use #:cl #:cl-alsaseq #:optima #:optima.extra)
+  (:use #:cl #:cl-alsaseq #:optima #:optima.extra #:calispel)
   (:export :*clock-chan*
            :*midi-in-chan*
            :set-master-bpm
@@ -37,14 +37,16 @@
            :set-slave
            :set-hires
            :set-lores
-           :inspect-helper-thread
-           :start-helper-threads
-           :stop-helper-threads
-           :check-helper-threads
+           :inspect-midihelper
+           :start-midihelper
+           :stop-midihelper
+           :check-midihelper
+           :if-gesture
+           :drain-channel
            ))
 
 (defpackage #:cl-midiloops
-  (:use #:cl #:cl-alsaseq #:cl-alsaseq.util #:optima #:optima.extra #:let-over-lambda)
+  (:use #:cl #:cl-alsaseq #:cl-alsaseq.util #:optima #:optima.extra #:calispel)
   (:import-from :let-over-lambda
                 #:g!-symbol-p
                 #:defmacro/g!
