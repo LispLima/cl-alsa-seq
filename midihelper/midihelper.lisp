@@ -7,6 +7,7 @@
 
 (defun start-midihelper ()
   (start-reader)
+  (start-writer)
   (start-master-clock)
   (start-hires-clock)
   (inspect-midihelper))
