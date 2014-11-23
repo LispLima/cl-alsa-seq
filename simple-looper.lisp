@@ -1,34 +1,10 @@
-(in-package :cl-alsaseq)
+(in-package :cl-midiloops)
 
 (defvar *ticks* 0)
 
 (defconstant +n-loops+ 4)
 (defconstant +default-loop-res+ 96)
 (defconstant +default-loop-len+ 8)
-
-(defun inspect-helper-threads ()
-  (list '*midi-in-thread* *midi-in-thread*
-        '*tick-thread* *tick-thread*
-        '*tock-thread* *tock-thread*))
-
-(defun start-helper-threads ()
-  (start-simple-midi-reader)
-  (start-master-clock)
-  (start-hires-clock)
-  (inspect-helper-threads))
-
-(defun check-helper-threads ()
-  (alexandria:doplist
-      (key val (inspect-helper-threads))
-    (if (null val)
-        (warn "Helper thread ~A not running" key))))
-
-(defun stop-helper-threads ()
-  (check-helper-threads)
-  (stop-simple-midi-reader)
-  (stop-master-clock)
-  (stop-hires-clock)
-  (inspect-helper-threads))
 
 (defun null-trigger ()
   (lambda (event)
@@ -44,8 +20,9 @@
    :play nil;;flag for whether to play events on loop tape
    :rec nil;;flag for whether to record incoming events
    :res +default-loop-res+
-   :ichan (make-nonblock-buf-channel)
-   :ochan (make-nonblock-buf-channel)))
+   ;; :ichan (make-nonblock-buf-channel)
+   ;; :ochan (make-nonblock-buf-channel)
+   ))
 
 (defun make-fixed-loop (bars &key (major 4) (minor 4) (res +default-loop-res+))
   (let ((newloop (new-m-loop)))

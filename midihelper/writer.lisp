@@ -1,10 +1,10 @@
-(in-package :cl-alsaseq)
+(in-package :cl-alsaseq.util)
 
 (defvar *seq* nil);;sequence struct
 (defvar **seq nil);;pointer to sequence struct (for memory deallocation)
 (defvar *my-ports* nil)
 
-(defun simple-init ()
+(defun start-writer ()
   (assert (null **seq))
   (assert (null *seq*))
   (assert (null *my-ports*))
@@ -15,7 +15,7 @@
            collect (open-port (format nil "port~A" i)
                               (mem-ref *seq* :pointer)))))
 
-(defun simple-deinit ()
+(defun stop-writer ()
   (assert **seq)
   (close-seq **seq)
   (setf *seq* nil)

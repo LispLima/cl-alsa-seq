@@ -5,7 +5,7 @@
 # SWIG.
 #
 
-swig -cffi -module bindings -noswig-lisp -o ../bindings.lisp bindings.i
+swig -cffi -module bindings -noswig-lisp -o ../driver/bindings.lisp bindings.i
 # sed -i 's|(\([0-9]\+ [0-9]\+\))|\1|' bindings.lisp
 
 # # ------------------------------------------------------------------------------

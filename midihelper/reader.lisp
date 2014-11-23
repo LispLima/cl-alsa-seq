@@ -1,4 +1,4 @@
-(in-package :cl-alsaseq)
+(in-package :cl-alsaseq.util)
 
 (defun make-nonblock-buf-channel (&optional (queue 10))
   (make-instance 'calispel:channel
@@ -52,7 +52,7 @@
 
 (defvar *midi-in-thread* nil)
 
-(defun start-simple-midi-reader ()
+(defun start-reader ()
   (assert (null *midi-in-thread*))
   (setf *midi-in-thread*
         (bt:make-thread (lambda ()
@@ -64,7 +64,7 @@
                             (setf *midi-in-thread* nil)))
                         :name "simple-midi-reader")))
 
-(defun stop-simple-midi-reader ()
+(defun stop-reader ()
   (bt:interrupt-thread
    *midi-in-thread* (lambda ()
                       (error 'stop-thread))))
