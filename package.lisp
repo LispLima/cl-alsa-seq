@@ -38,6 +38,7 @@
            :set-slave
            :set-hires
            :set-lores
+           :bpm-test
            :inspect-midihelper
            :start-midihelper
            :stop-midihelper
