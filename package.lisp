@@ -13,6 +13,7 @@
            :open-seq
            :close-seq
            :with-seq
+           :send-queue-ctrl
            :send-ctrl
            :send-note
            :recv

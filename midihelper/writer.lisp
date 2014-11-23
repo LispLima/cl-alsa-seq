@@ -32,18 +32,53 @@
      (send-note velocity note channel event-type seq port))
     ((plist :EVENT-TYPE (guard event-type (or (equal event-type
                                                      :snd_seq_event_controller)
-                                             (equal event-type
-                                                    :snd_seq_event_pgmchange)
-                                             (equal event-type
-                                                    :snd_seq_event_chanpress)
-                                             (equal event-type
-                                                    :snd_seq_event_pitchbend)
-                                             (equal event-type
-                                                    :snd_seq_event_control14)
-                                             (equal event-type
-                                                    :snd_seq_event_nonregparam)
-                                             (equal event-type
-                                                    :snd_seq_event_regparam)))
+                                              (equal event-type
+                                                     :snd_seq_event_songpos)
+                                              (equal event-type
+                                                     :snd_seq_event_pgmchange)
+                                              (equal event-type
+                                                     :snd_seq_event_chanpress)
+                                              (equal event-type
+                                                     :snd_seq_event_pitchbend)
+                                              (equal event-type
+                                                     :snd_seq_event_control14)
+                                              (equal event-type
+                                                     :snd_seq_event_nonregparam)
+                                              (equal event-type
+                                                     :snd_seq_event_regparam)))
             :EVENT-DATA (plist VALUE value PARAM param CHANNEL channel))
      (send-ctrl channel param value event-type seq port))
+    ((plist :EVENT-TYPE (guard event-type (or (equal event-type
+                                                     :snd_seq_event_clock)
+                                              (equal event-type
+                                                     :snd_seq_event_start)
+                                              (equal event-type
+                                                     :snd_seq_event_stop)
+                                              (equal event-type
+                                                     :snd_seq_event_continue))))
+     (send-queue-ctrl 0 event-type seq port))
      (_ (format t "unknown event ~S~%" description))))
+
+(defun ev-noteon (channel note velocity)
+  (list :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+        :EVENT-DATA `(VELOCITY ,velocity NOTE ,note CHANNEL ,channel)))
+
+(defun ev-noteoff (channel note velocity)
+  (list :EVENT-TYPE :SND_SEQ_EVENT_NOTEOFF
+        :EVENT-DATA `(VELOCITY ,velocity NOTE ,note CHANNEL ,channel)))
+
+(defun ev-tick ()
+  '(:EVENT-TYPE :SND_SEQ_EVENT_CLOCK))
+
+(defun ev-start ()
+  '(:EVENT-TYPE :SND_SEQ_EVENT_START))
+
+(defun ev-stop ()
+  '(:EVENT-TYPE :SND_SEQ_EVENT_STOP))
+
+(defun ev-continue ()
+  '(:EVENT-TYPE :SND_SEQ_EVENT_CONTINUE))
+
+(defun ev-songpos (songpos)
+  (list :EVENT-TYPE :SND_SEQ_EVENT_SONGPOS
+        :EVENT-DATA `(VALUE ,songpos PARAM 0 CHANNEL 0)))

@@ -70,15 +70,16 @@
   (assert (null *tock-thread*))
   (setf *tock-thread* (bt:make-thread #'tocker :name "96ppqn clock")))
 
-
 (defun stop-hires-clock ()
   (bt:destroy-thread *tock-thread*)
   (setf *tock-thread* nil))
 
 (defun set-master ()
+  (drain-channel *master-tick-chan*)
   (setf *tick-chan* *master-tick-chan*))
 
 (defun set-slave ()
+  (drain-channel *slave-tick-chan*)
   (setf *tick-chan* *slave-tick-chan*))
 
 (defun set-hires ()

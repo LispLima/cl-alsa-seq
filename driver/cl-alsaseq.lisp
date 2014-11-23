@@ -120,6 +120,16 @@
                                    '(:struct snd_seq_ev_note_t))))
      ,@body))
 
+(defmacro with-snd_seq_ev_queue_control ((var queue unused param)
+                                &body body)
+  `(let ((,var (convert-to-foreign (list
+                                    'queue ,queue
+                                    'unused ,unused
+                                    'param ,param
+                                    )
+                                   '(:struct snd_seq_ev_queue_control_t))))
+     ,@body))
+
 (defcvar "errno" :int)
 
 (defmacro with-midi-event ((var type &key (queue SND_SEQ_QUEUE_DIRECT)) &body body)
@@ -170,3 +180,9 @@
   (event-type-assert ctrl-type :SND_SEQ_EVENT_CONTROLLER :SND_SEQ_EVENT_SONGPOS)
   (with-snd_seq_ev_ctrl (data channel (null-pointer) param value)
     (send-midi *seq my-port data ctrl-type)))
+
+(defun send-queue-ctrl (queue queue-ctrl-type
+                        *seq my-port)
+  (event-type-assert queue-ctrl-type :SND_SEQ_EVENT_START :SND_SEQ_EVENT_TUNE_REQUEST)
+  (with-snd_seq_ev_queue_control (data queue (null-pointer) (null-pointer))
+    (send-midi *seq my-port data queue-ctrl-type)))
