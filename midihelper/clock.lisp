@@ -10,8 +10,10 @@
 
 (defvar *tock-chan*  (make-nonblock-buf-channel))
 
+(defvar *clock-chan* *tock-chan*)
+
 (defun tick ()
-  (! *tick-echo-chan (? *tick-chan*))
+  (! *tick-echo-chan* (? *tick-chan*))
   (get-internal-real-time))
 
 (defvar *tick-time* 0.05)

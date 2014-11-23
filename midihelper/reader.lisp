@@ -58,7 +58,7 @@
         (bt:make-thread (lambda ()
                           (unwind-protect
                                (handler-case
-                                   (with-alsa (seq :name "CL")
+                                   (with-seq (seq :name "CL")
                                      (midi-input seq))
                                  (stop-thread ()))
                             (setf *midi-in-thread* nil)))

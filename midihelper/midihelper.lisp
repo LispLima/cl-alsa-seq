@@ -19,7 +19,7 @@
         (warn "Helper ~A not running" key))))
 
 (defun stop-midihelper ()
-  (check-helper-threads)
+  (check-midihelper)
   (stop-reader)
   (stop-writer)
   (stop-master-clock)

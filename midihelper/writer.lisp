@@ -13,7 +13,7 @@
   (setf *my-ports*
         (loop for i from 1 to 1
            collect (open-port (format nil "port~A" i)
-                              (mem-ref *seq* :pointer)))))
+                              *seq*))))
 
 (defun stop-writer ()
   (assert **seq)

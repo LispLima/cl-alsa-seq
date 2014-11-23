@@ -15,6 +15,7 @@
            :with-seq
            :send-ctrl
            :send-note
+           :recv
            ))
 
 
@@ -29,7 +30,7 @@
            ))
 
 (defpackage #:cl-alsaseq.util
-  (:use #:cl #:cl-alsaseq #:optima #:optima.extra #:calispel)
+  (:use #:cl #:cffi #:cl-alsaseq #:optima #:optima.extra #:calispel)
   (:export :*clock-chan*
            :*midi-in-chan*
            :set-master-bpm
