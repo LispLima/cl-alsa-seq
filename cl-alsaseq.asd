@@ -13,4 +13,5 @@
                (:file "midi-reader")
                (:file "midi-writer")
                (:file "hires-clock")
+               (:file "easy-api")
                (:file "simple-looper")))

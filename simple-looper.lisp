@@ -99,7 +99,7 @@
 
 (defun run-dumb-loop (&key seq (mloop *my-mloop*))
   (check-helper-threads)
-  ;; (drain-channel *midi-in-chan*)
+  (drain-channel *midi-in-chan*)
   (let ((port 0;; (open-port "foo" seq)
           ))
     (loop (pri-alt ((? *tock-chan* tick)

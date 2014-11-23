@@ -1,6 +1,28 @@
 (in-package :cl-alsaseq)
 
-(defun send-event (description seq port)
+(defvar *seq* nil);;sequence struct
+(defvar **seq nil);;pointer to sequence struct (for memory deallocation)
+(defvar *my-ports* nil)
+
+(defun simple-init ()
+  (assert (null **seq))
+  (assert (null *seq*))
+  (assert (null *my-ports*))
+  (setf **seq (open-seq "Main"))
+  (setf *seq* (mem-ref **seq :pointer))
+  (setf *my-ports*
+        (loop for i from 1 to 1
+           collect (open-port (format nil "port~A" i)
+                              (mem-ref *seq* :pointer)))))
+
+(defun simple-deinit ()
+  (assert **seq)
+  (close-seq **seq)
+  (setf *seq* nil)
+  (setf **seq nil)
+  (setf *my-ports* nil))
+
+(defun send-event (description &optional (port (car *my-ports*)) (seq *seq*))
   (match description
     ((plist :EVENT-TYPE (guard event-type (or (equal event-type :snd_seq_event_noteoff)
                                               (equal event-type :snd_seq_event_noteon)))
@@ -25,6 +47,3 @@
             :EVENT-DATA (plist VALUE value PARAM param CHANNEL channel))
      (send-ctrl channel param value event-type seq port))
      (_ (format t "unknown event ~S~%" description))))
-
-(defun parse-echo (seq port)
-  (send-event (recv seq) seq port))

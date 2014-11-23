@@ -8,3 +8,6 @@
                 #:o!-symbol-p
                 #:o!-symbol-to-g!-symbol
                 #:defmacro!))
+
+(defpackage #:cl-alsaseq.ez
+  (:use #:cl #:cl-alsaseq))

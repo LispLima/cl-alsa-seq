@@ -3,17 +3,20 @@
 (load-foreign-library "libasound.so")
 
 (defun open-seq (client-name)
+  "return a new alsa sequencer object named <name>"
   (let ((seq (foreign-alloc :pointer)))
     (snd_seq_open seq "default" SND_SEQ_OPEN_DUPLEX 0)
     (snd_seq_set_client_name (mem-ref seq :pointer) client-name)
     seq))
 
 (defun close-seq (seq)
+  "close alsa sequencer object <seq>"
   (snd_seq_close (mem-ref seq :pointer))
   (foreign-free seq)
   (setf seq nil))
 
 (defun open-port (name seq &optional (direction :duplex))
+  "create a new port on the alsa sequencer object <seq> named <name>"
   (snd_seq_create_simple_port seq name
                               (apply #'logior
                                      (append
@@ -27,26 +30,12 @@
                                                SND_SEQ_PORT_CAP_SUBS_READ)))))
                               (logior SND_SEQ_PORT_TYPE_MIDI_GENERIC
                                       SND_SEQ_PORT_TYPE_APPLICATION)))
+(defun close-port (seq port)
+  "close port <port> on alsa sequencer object <seq>"
+  (snd_seq_delete_simple_port seq port))
 
-(defvar *seq* nil)
-(defvar *my-ports* nil)
-
-(defun simple-init ()
-  (assert (null *seq*))
-  (assert (null *my-ports*))
-  (setf *seq* (open-seq "Main"))
-  (setf *my-ports*
-        (loop for i from 1 to 3
-           collect (open-port (format nil "port~A" i)
-                              (mem-ref *seq* :pointer)))))
-
-(defun simple-deinit ()
-  (assert *seq*)
-  (close-seq *seq*)
-  (setf *seq* nil)
-  (setf *my-ports* nil))
-
-(defmacro! with-alsa ((seq &key (name "CL")) &body body)
+(defmacro! with-seq ((seq &key (name "Common Lisp")) &body body)
+  "open an alsa sequencer connection <seq>, named <name> with lexical scope in <body>"
   `(let* ((,g!seq (open-seq ,name))
           (,seq (mem-ref ,g!seq :pointer)))
      (unwind-protect
@@ -54,10 +43,11 @@
        (close-seq ,g!seq))))
 
 (defun ev-key-int (key)
-  (foreign-enum-value
-   'snd_seq_event_type key))
+  "convert alsa event-type keyword to cffi int"
+  (foreign-enum-value 'snd_seq_event_type key))
 
 (defun ev-int-key (int)
+  "convert alsa event-type cffi int to keyword"
   (foreign-enum-keyword 'snd_seq_event_type int))
 
 (defun cond-lookup-test (event-type-key)
@@ -71,6 +61,7 @@
   (cffi:mem-ref *data (cond-lookup)))
 
 (defun describe-event (event)
+  "take a raw cffi midi event and return plist representation"
   (with-foreign-slots ((type (:pointer data) queue (:pointer source) (:pointer dest)) event (:struct snd_seq_event_t))
     (list ;; :pointer event
      :event-type
@@ -97,39 +88,6 @@
             (snd_seq_event_input *seq *event)
             (describe-event (mem-ref *event :pointer)))
           (warn (foreign-funcall "strerror" :int *errno* :string))))))
-
-(defun echo (*seq port)
-  "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then echo that event"
-  (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
-    (cffi:with-foreign-objects ((pfds '(:struct pollfd) npfds)
-                                (*event '(:struct snd_seq_event_t)))
-      (snd_seq_poll_descriptors *seq pfds npfds POLLIN)
-      (assert (> (poll pfds npfds -1) 0))
-      (snd_seq_event_input *seq *event)
-      (let* ((event (mem-ref *event :pointer))
-             (*source (cffi:foreign-slot-pointer
-                       event '(:struct snd_seq_event_t) 'source))
-             (*dest (cffi:foreign-slot-pointer
-                     event '(:struct snd_seq_event_t) 'dest)))
-        (setf (mem-ref (foreign-slot-pointer *source
-                                             '(:struct snd_seq_addr_t) 'port)
-                       :uchar)
-              port)
-        (setf (mem-ref (foreign-slot-pointer *dest
-                                             '(:struct snd_seq_addr_t) 'client)
-                       :uchar)
-              SND_SEQ_ADDRESS_SUBSCRIBERS)
-        (setf (mem-ref (foreign-slot-pointer *dest
-                                             '(:struct snd_seq_addr_t) 'port)
-                       :uchar)
-              SND_SEQ_ADDRESS_UNKNOWN)
-        (setf (mem-ref (foreign-slot-pointer *event
-                                             '(:struct snd_seq_event_t)
-                                             'queue) :uchar)
-              SND_SEQ_QUEUE_DIRECT)
-        (snd_seq_event_output *seq event)
-        (snd_seq_drain_output *seq)
-        (describe-event event)))))
 
 (defcfun "memset" :pointer
   (*dest :pointer)
@@ -196,11 +154,10 @@
     (snd_seq_drain_output *seq)))
 
 (defun event-type-assert (type type-min type-max)
-  (let ((type-value (foreign-enum-value 'snd_seq_event_type type)))
-    (assert (and (>= type-value (foreign-enum-value 'snd_seq_event_type
-                                                    type-min))
-                 (< type-value (foreign-enum-value 'snd_seq_event_type
-                                                   type-max))))))
+  "check that keyword 'type' is a valid event type keyword"
+  (let ((type-value (ev-key-int type)))
+    (assert (and (>= type-value (ev-key-int type-min))
+                 (< type-value (ev-key-int type-max))))))
 
 (defun send-note (velocity note channel note-type
                   *seq my-port)
@@ -213,31 +170,3 @@
   (event-type-assert ctrl-type :SND_SEQ_EVENT_CONTROLLER :SND_SEQ_EVENT_SONGPOS)
   (with-snd_seq_ev_ctrl (data channel (null-pointer) param value)
     (send-midi *seq my-port data ctrl-type)))
-
-(defmacro def-event-func (event args &body body)
-  `(defun ,(intern (format nil "SEND-~A" event))
-       ,args ,@body))
-
-(eval-when (:load-toplevel :compile-toplevel :execute)
-  (mapcar
-   (lambda (event-type)
-     (let ((ctrl-type (intern (format nil "SND_SEQ_EVENT_~A" event-type) :keyword)))
-       (compile (intern (format nil "SEND-~A" event-type))
-                `(lambda (channel param value
-                          *seq my-port)
-                   (send-ctrl channel param value ,ctrl-type *seq my-port)))))
-   '(:PGMCHANGE
-     :CHANPRESS
-     :PITCHBEND
-     :CONTROL
-     :NONREGPARAM
-     :REGPARAM)))
-
-
-(defun send-note-on (velocity note channel
-                     *seq my-port)
-  (send-note velocity note channel :SND_SEQ_EVENT_NOTEON *seq my-port))
-
-(defun send-note-off (velocity note channel
-                      *seq my-port)
-  (send-note velocity note channel :SND_SEQ_EVENT_NOTEOFF *seq my-port))
