@@ -12,9 +12,9 @@
 
 (defvar *clock-chan* *tock-chan*)
 
-(defun tick ()
-  (! *tick-echo-chan* (? *tick-chan*))
-  (get-internal-real-time))
+(defun zap-channels ()
+  (mapcar (lambda (sym) (unintern sym))
+          '(*master-tick-chan* *slave-tick-chan* *tick-chan* *tick-echo-chan* *tock-chan* *clock-chan*)))
 
 (defvar *tick-time* 0.05)
 
@@ -37,32 +37,67 @@
   (bt:destroy-thread *tick-thread*)
   (setf *tick-thread* nil))
 
-(defun bpm-test (&optional (ppqn 24) (clock-chan *tick-chan*))
-  (loop repeat 20 do
-         (? clock-chan 0.1));; clear buffer of stale ticks
-  (let ((start-time (get-internal-real-time))
+(defun bpm-test (&optional (ppqn 96) (clock-chan *clock-chan*))
+  (drain-channel clock-chan);; clear buffer of stale ticks
+  (? clock-chan)
+  (let ((start-time)
+        (end-time)
         (reps (* ppqn 5)))
+    (setf start-time (get-internal-real-time))
     (loop repeat reps do
          (? clock-chan 0.1))
+    (setf end-time (get-internal-real-time))
     (format t "counted ~A ticks in ~A ms. (~F bpm)~%~%"
             reps
-            (- (get-internal-real-time) start-time)
+            (- end-time start-time)
             (/ (* reps 60 1000)
-               (* ppqn (- (get-internal-real-time) start-time))))))
+               (* ppqn (- end-time start-time))))))
+
+(defun tick ()
+  (! *tick-echo-chan* (? *tick-chan*))
+  (get-internal-real-time))
+
+(defvar *songpos-ticks* 0)
+
+(defun songpos ()
+  "This is song position, defined in 1/4 beats"
+  (match *clock-chan*
+    ((equal *tick-echo-chan*)
+     (floor *songpos-ticks* 6))
+    ((equal  *tock-chan*)
+     (floor *songpos-ticks* 24))))
+
+(defun set-songpos (ticks)
+  "Set song position, specified in 1/4 beats (same units as songpos pointer)"
+  (match *clock-chan*
+    ((equal *tick-echo-chan*)
+     (setf *songpos-ticks* (* ticks 6)))
+    ((equal  *tock-chan*)
+     (setf *songpos-ticks* (* ticks 24)))))
+
+(let ((running-total 0))
+  (defun calculate-intvl (this next)
+    (let ((intvl (/ (- next this) ;; 4000
+                    4000
+                    )))
+      (if (> intvl (/ 1 8))
+          (setf running-total 0)
+          (setf running-total (+ (* intvl 0.05)
+                                 (* running-total 0.095)))))))
 
 (defun tocker ()
   "free-running clock multiplier"
   (let* ((this (tick))
         (next (tick))
-        (intvl (/ (- next this) 4000)))
-    (loop (! *tock-chan* "tock")
+        (intvl (calculate-intvl this next)))
+    (loop (! *tock-chan* (ev-microtick))
        (loop repeat 3
           do
             (sleep intvl)
-            (! *tock-chan* "tack"))
+            (! *tock-chan* (ev-microtick)))
        (setf this next)
        (setf next (tick))
-       (setf intvl (/ (- next this) 4000)))))
+       (setf intvl (calculate-intvl this next)))))
 
 (defvar *tock-thread* nil)
 

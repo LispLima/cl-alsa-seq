@@ -38,8 +38,16 @@
 
 (defmacro if-clock (event &body body)
   `(match ,event
-     ((plist :EVENT-TYPE (guard event-type (equal event-type
-                                                  :snd_seq_event_clock)))
+     ((plist :EVENT-TYPE (guard event-type (or (equal event-type
+                                                      :snd_seq_event_clock)
+                                               (equal event-type
+                                                      :snd_seq_event_start)
+                                               (equal event-type
+                                                      :snd_seq_event_stop)
+                                               (equal event-type
+                                                      :snd_seq_event_continue)
+                                               (equal event-type
+                                                      :snd_seq_event_songpos))))
       ,@body)))
 
 (defun midi-input (seq)
@@ -48,7 +56,7 @@
           (if-gesture mess
             (! *midi-in-chan* mess))
           (if-clock mess
-            (! *slave-tick-chan* "tick")))))
+            (! *slave-tick-chan* mess )))))
 
 (defvar *midi-in-thread* nil)
 

@@ -70,6 +70,9 @@
 (defun ev-tick ()
   '(:EVENT-TYPE :SND_SEQ_EVENT_CLOCK))
 
+(defun ev-microtick ()
+  '(:EVENT-TYPE :MICROTICK))
+
 (defun ev-start ()
   '(:EVENT-TYPE :SND_SEQ_EVENT_START))
 
@@ -82,3 +85,42 @@
 (defun ev-songpos (songpos)
   (list :EVENT-TYPE :SND_SEQ_EVENT_SONGPOS
         :EVENT-DATA `(VALUE ,songpos PARAM 0 CHANNEL 0)))
+
+(defun loop-push-extend (loop-id &key (push-extend t))
+  (list :EVENT-TYPE :LOOP-EXTEND
+        :LOOP-ID loop-id
+        :PUSH-EXTEND push-extend))
+
+(defun loop-overdub (loop-id &key (overdub t))
+  (list :EVENT-TYPE :LOOP-OVERDUB
+        :LOOP-ID loop-id
+        :OVERDUB overdub))
+
+(defun loop-play (loop-id)
+  (list :EVENT-TYPE :LOOP-PLAY
+        :LOOP-ID loop-id))
+
+(defun loop-play-all ()
+  (list :EVENT-TYPE :LOOP-PLAY
+        :LOOP-ID :all))
+
+(defun loop-stop (loop-id)
+  (list :EVENT-TYPE :LOOP-STOP
+        :LOOP-ID loop-id))
+
+(defun loop-stop-all ()
+  (list :EVENT-TYPE :LOOP-STOP
+        :LOOP-ID :ALL))
+
+(defun loop-erase (loop-id)
+  (list :EVENT-TYPE :LOOP-ERASE
+        :LOOP-ID loop-id))
+
+(defun loop-erase-all ()
+  (list :EVENT-TYPE :LOOP-ERASE
+        :LOOP-ID :ALL))
+
+(defun loop-cycle (loop-id)
+  "This is the typical create, define-endpoint, overdub cycle"
+  (list :EVENT-TYPE :LOOP-CYCLE
+        :LOOP-ID loop-id))
