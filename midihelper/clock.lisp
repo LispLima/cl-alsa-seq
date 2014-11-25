@@ -52,11 +52,6 @@
             (- end-time start-time)
             (/ (* reps 60 1000)
                (* ppqn (- end-time start-time))))))
-
-(defun tick ()
-  (! *tick-echo-chan* (? *tick-chan*))
-  (get-internal-real-time))
-
 (defvar *songpos-ticks* 0)
 
 (defun songpos ()
@@ -85,19 +80,28 @@
           (setf running-total (+ (* intvl 0.05)
                                  (* running-total 0.095)))))))
 
-(defun tocker ()
+(defun tocker (last-ticktime)
   "free-running clock multiplier"
-  (let* ((this (tick))
-        (next (tick))
-        (intvl (calculate-intvl this next)))
-    (loop (! *tock-chan* (ev-microtick))
+  (let* ((event (? *tick-chan*))
+         (next-ticktime (get-internal-real-time))
+         (intvl (calculate-intvl last-ticktime next-ticktime)))
+    (match event
+      ((property :EVENT-TYPE :SND_SEQ_EVENT_CLOCK)
+       (! *tock-chan* event)
+       (! *tick-echo-chan* event)
        (loop repeat 3
-          do
-            (sleep intvl)
+          do (sleep intvl)
             (! *tock-chan* (ev-microtick)))
-       (setf this next)
-       (setf next (tick))
-       (setf intvl (calculate-intvl this next)))))
+       (setf last-ticktime next-ticktime))
+      ((property :EVENT-TYPE (or :SND_SEQ_EVENT_STOP
+                                 :SND_SEQ_EVENT_START
+                                 :SND_SEQ_EVENT_CONTINUE))
+       (! *tock-chan* event))
+      ((plist :EVENT-TYPE :SND_SEQ_EVENT_SONGPOS
+              :EVENT-DATA (property VALUE songpos))
+       (set-songpos songpos))
+      (_ (warn "unknown event seen by timer thread ~A" event)))
+    (tocker last-ticktime)))
 
 (defvar *tock-thread* nil)
 
