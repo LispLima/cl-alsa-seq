@@ -24,7 +24,7 @@
 (defun ticker ()
   "optional master clock"
   (loop
-     (! *master-tick-chan* "tick")
+     (! *master-tick-chan* (ev-tick))
      (sleep *tick-time*)))
 
 (defvar *tick-thread* nil)
@@ -76,7 +76,7 @@
                     4000
                     )))
       (if (> intvl (/ 1 8))
-          (setf running-total 0)
+          (setf running-total 0.001)
           (setf running-total (+ (* intvl 0.05)
                                  (* running-total 0.095)))))))
 
@@ -100,15 +100,16 @@
       ((plist :EVENT-TYPE :SND_SEQ_EVENT_SONGPOS
               :EVENT-DATA (property VALUE songpos))
        (set-songpos songpos))
-      (_ (warn "unknown event seen by timer thread ~A" event)))
+      (_ (warn "unknown event seen by timer thread ~A" event)
+         (sleep 1)))
     (tocker last-ticktime)))
 
 (defvar *tock-thread* nil)
 
 (defun start-hires-clock ()
   (assert (null *tock-thread*))
-  (setf *tock-thread* (bt:make-thread #'tocker :name "96ppqn clock")))
-
+  (setf *tock-thread* (bt:make-thread (lambda () (tocker (get-internal-real-time)))
+                                      :name "96ppqn clock")))
 (defun stop-hires-clock ()
   (bt:destroy-thread *tock-thread*)
   (setf *tock-thread* nil))
@@ -126,3 +127,6 @@
 
 (defun set-lores ()
   (setf *clock-chan* *tick-echo-chan*))
+
+
+
