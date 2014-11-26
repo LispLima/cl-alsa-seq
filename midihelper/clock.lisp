@@ -20,11 +20,36 @@
 (defun set-master-bpm (bpm)
   (setf *tick-time* (/ (/ 60 24) bpm)))
 
-(defun ticker (tick-chan)
-  "optional master clock"
-  (loop
-     (! tick-chan (ev-tick))
-     (sleep *tick-time*)))
+(let ((songpos 0)
+      (ticker-state :stopped))
+  (defun ticker (tick-chan ctrl-chan)
+    "optional master clock"
+    (multiple-value-bind (semiquavers rem)
+        (floor songpos 6)
+      (assert (= 0 rem))
+      (print semiquavers))
+    (match ticker-state
+      (:stopped
+       (let ((ctrl-event (? ctrl-chan)))
+         (match ctrl-event
+           ((property :EVENT-TYPE :SND_SEQ_EVENT_CONTINUE)
+            (! tick-chan (ev-songpos songpos))
+            (! tick-chan (ev-continue))
+            (setf ticker-state :running))
+           ((property :EVENT-TYPE :SND_SEQ_EVENT_START)
+            (setf songpos 0)
+            (setf ticker-state :running)))))
+      (:running
+       (pri-alt ((? ctrl-chan ctrl)
+                 (match ctrl
+                   ((property :EVENT-TYPE :SND_SEQ_EVENT_STOP)
+                    (setf ticker-state :stopped))))
+                (otherwise
+                 (loop repeat 6
+                    do (! tick-chan (ev-tick))
+                      (sleep *tick-time*)
+                      (incf songpos))))))
+    (ticker tick-chan ctrl-chan)))
 
 (defvar *tick-thread* nil)
 
@@ -121,10 +146,10 @@
    *tock-thread* (lambda ()
                    (error 'stop-thread))))
 
-(defun start-master-clock (tick-chan)
+(defun start-master-clock (tick-chan control-chan)
   (assert (null *tick-thread*))
   (setf *tick-thread* (bt:make-thread (lambda ()
-                                        (ticker tick-chan))
+                                        (ticker tick-chan control-chan))
                                       :name "master clock")))
 
 (defun stop-master-clock ()
@@ -136,7 +161,7 @@
     (assert (null val)))
   (setf *master-tick-chan* (make-nonblock-buf-channel))
   (start-hires-clock *master-tick-chan*)
-  (start-master-clock *master-tick-chan*))
+  (start-master-clock *master-tick-chan* *slave-tick-chan*))
 
 (defun start-with-slave-clock ()
   (alexandria:doplist (key val (inspect-midihelper))
@@ -150,6 +175,3 @@
 
 (defun set-lores ()
   (setf *clock-chan* *tick-echo-chan*))
-
-
-
