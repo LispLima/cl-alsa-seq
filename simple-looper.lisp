@@ -66,8 +66,9 @@
           (cons event (aref seq ticks)))))
 
 (defun loop-write-gesture (event mloop)
-  (if-gesture event
-    (loop-write event mloop)))
+  (macromatch event
+    (if-gesture
+      (loop-write event mloop))))
 
 (defvar *my-mloop* (make-fixed-loop 2))
 
@@ -76,7 +77,7 @@
 
 (defun run-dumb-loop (&key seq (mloop *my-mloop*))
   (check-midihelper)
-  (drain-channel *midi-in-chan*)
+  ;; (drain-channel *midi-in-chan*)
   (let ((port 0;; (open-port "foo" seq)
           ))
     (loop (pri-alt ((? *clock-chan* tick)

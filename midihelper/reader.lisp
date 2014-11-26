@@ -53,15 +53,14 @@
      ,@(mapcar #'macroexpand
               clauses)))
 
-(defun midi-input (seq)
+(defun midi-input (seq tick-chan gesture-chan)
   (open-port "in" seq :input)
   (loop (let ((mess (recv seq)))
           (macromatch mess
             (if-gesture
-              (! *midi-in-chan* mess))
+              (! gesture-chan mess))
             (if-clock 
-              (! *slave-tick-chan* mess))))))
-                                          
+              (! tick-chan mess))))))     
 
 (defvar *midi-in-thread* nil)
 
@@ -73,7 +72,10 @@
                           (unwind-protect
                                (handler-case
                                    (with-seq (seq :name "CL")
-                                     (midi-input seq))
+                                     (midi-input seq
+                                                 *slave-tick-chan*
+                                                 *midi-in-chan*
+                                                 ))
                                  (stop-thread ()))
                             (setf *midi-in-thread* nil)))
                         :name "simple-midi-reader")))

@@ -45,7 +45,10 @@
            :stop-midihelper
            :check-midihelper
            :if-gesture
+           :if-clock
+           :macromatch
            :drain-channel
+           :send-event
            ))
 
 (defpackage #:cl-midiloops
