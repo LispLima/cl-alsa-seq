@@ -128,10 +128,11 @@
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
-(defvar *loop-stack* (list :loops (loop repeat +n-loops+
-                                     collect (new-m-loop))
-                           :metro (make-jazz-metro 2)
-                           :jazz-metro (make-simple-metro 2)))
+(defvar *loop-stack* (append (loop for i from 1 to +n-loops+
+                                collect (cons (intern (format nil "LOOP~D" i) :keyword)
+                                              (new-m-loop)))
+                             (list :metro (make-jazz-metro 2))
+                             (list :jazz-metro (make-simple-metro 2))))
 
 (defun loop-push-extend (loop-id &key (push-extend t))
   (list :EVENT-TYPE :LOOP-EXTEND
@@ -147,25 +148,13 @@
   (list :EVENT-TYPE :LOOP-PLAY
         :LOOP-ID loop-id))
 
-(defun loop-play-all ()
-  (list :EVENT-TYPE :LOOP-PLAY
-        :LOOP-ID :all))
-
 (defun loop-stop (loop-id)
   (list :EVENT-TYPE :LOOP-STOP
         :LOOP-ID loop-id))
 
-(defun loop-stop-all ()
-  (list :EVENT-TYPE :LOOP-STOP
-        :LOOP-ID :ALL))
-
 (defun loop-erase (loop-id)
   (list :EVENT-TYPE :LOOP-ERASE
         :LOOP-ID loop-id))
-
-(defun loop-erase-all ()
-  (list :EVENT-TYPE :LOOP-ERASE
-        :LOOP-ID :ALL))
 
 (defun loop-cycle (loop-id)
   "This is the typical create, define-endpoint, overdub cycle"

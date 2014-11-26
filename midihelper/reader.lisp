@@ -64,7 +64,7 @@
 
 (defvar *midi-in-thread* nil)
 
-(defun start-reader ()
+(defun start-reader (tick-chan)
   (assert (null *midi-in-thread*))
   (setf *midi-in-thread*
         (bt:make-thread (lambda ()
@@ -73,7 +73,7 @@
                                (handler-case
                                    (with-seq (seq :name "CL")
                                      (midi-input seq
-                                                 *slave-tick-chan*
+                                                 tick-chan
                                                  *midi-in-chan*
                                                  ))
                                  (stop-thread ()))

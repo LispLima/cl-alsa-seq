@@ -35,13 +35,12 @@
   (:export :*clock-chan*
            :*midi-in-chan*
            :set-master-bpm
-           :set-master
-           :set-slave
            :set-hires
            :set-lores
            :bpm-test
            :inspect-midihelper
-           :start-midihelper
+           :start-with-master-clock
+           :start-with-slave-clock
            :stop-midihelper
            :check-midihelper
            :if-gesture
@@ -49,6 +48,10 @@
            :macromatch
            :drain-channel
            :send-event
+           :zap-channels
+           :stop-reader :stop-writer
+           :start-reader :start-writer
+           :start-hires-clock :stop-hires-clock
            ))
 
 (defpackage #:cl-midiloops

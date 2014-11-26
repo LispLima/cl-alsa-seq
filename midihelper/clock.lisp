@@ -1,12 +1,10 @@
 (in-package :cl-alsaseq.util)
 
 
-(defvar *master-slave* :master)
 (defvar *master-tick-chan* (make-nonblock-buf-channel))
 
 (defvar *slave-tick-chan* (make-nonblock-buf-channel))
 
-(defvar *tick-chan* (make-nonblock-buf-channel))
 (defvar *tick-echo-chan* (make-nonblock-buf-channel))
 
 (defvar *tock-chan*  (make-nonblock-buf-channel))
@@ -15,17 +13,17 @@
 
 (defun zap-channels ()
   (mapcar (lambda (sym) (unintern sym))
-          '(*master-tick-chan* *slave-tick-chan* *tick-chan* *tick-echo-chan* *tock-chan* *clock-chan*)))
+          '(*master-tick-chan* *slave-tick-chan* *tick-echo-chan* *tock-chan* *clock-chan*)))
 
 (defvar *tick-time* 0.05)
 
 (defun set-master-bpm (bpm)
   (setf *tick-time* (/ (/ 60 24) bpm)))
 
-(defun ticker ()
+(defun ticker (tick-chan)
   "optional master clock"
   (loop
-     (! *master-tick-chan* (ev-tick))
+     (! tick-chan (ev-tick))
      (sleep *tick-time*)))
 
 (defvar *tick-thread* nil)
@@ -74,11 +72,11 @@
         0.05
         intvl)))
 
-(defun tocker (last-ticktime)
+(defun tocker (last-ticktime tick-chan)
   "free-running clock multiplier"
   (if (= 0 (nth-value 1 (songpos)))
       (print (songpos)))
-  (let* ((event (? *tick-chan*))
+  (let* ((event (? tick-chan))
          (next-ticktime (get-internal-real-time))
          (intvl (calculate-intvl last-ticktime next-ticktime)))
     (match event
@@ -101,11 +99,11 @@
        (set-songpos songpos))
       (_ (error "unknown event seen by timer thread ~A" event)
          (sleep 1)))
-    (tocker last-ticktime)))
+    (tocker last-ticktime tick-chan)))
 
 (defvar *tock-thread* nil)
 
-(defun start-hires-clock ()
+(defun start-hires-clock (tick-chan)
   (assert (null *tock-thread*))
   (setf *tock-thread*
         (bt:make-thread
@@ -113,7 +111,7 @@
            (sleep 1)
            (unwind-protect
                 (handler-case
-                    (tocker (get-internal-real-time))
+                    (tocker (get-internal-real-time) tick-chan)
                   (stop-thread ()))
              (setf *tock-thread* nil)))
          :name "96ppqn clock")))
@@ -123,30 +121,29 @@
    *tock-thread* (lambda ()
                    (error 'stop-thread))))
 
-(defun start-master-clock ()
+(defun start-master-clock (tick-chan)
   (assert (null *tick-thread*))
-  (setf *tick-thread* (bt:make-thread #'ticker
+  (setf *tick-thread* (bt:make-thread (lambda ()
+                                        (ticker tick-chan))
                                       :name "master clock")))
+
 (defun stop-master-clock ()
   (bt:destroy-thread *tick-thread*)
   (setf *tick-thread* nil))
 
-(defun set-master ()
-  (assert (null *tick-thread*))
-  (if *tock-thread* (stop-hires-clock))
-  (drain-channel *master-tick-chan*)
-  (setf *tick-chan* *master-tick-chan*)
-  (start-master-clock)
-  (start-hires-clock))
+(defun start-with-master-clock ()
+  (alexandria:doplist (key val (inspect-midihelper))
+    (assert (null val)))
+  (setf *master-tick-chan* (make-nonblock-buf-channel))
+  (start-hires-clock *master-tick-chan*)
+  (start-master-clock *master-tick-chan*))
 
-(defun set-slave ()
-  (if *tick-thread* (stop-master-clock))
-  (if *midi-in-thread* (stop-reader))
-  (if *tock-thread* (stop-hires-clock))
-  (drain-channel *slave-tick-chan*)
-  (setf *tick-chan* *slave-tick-chan*)
-  (start-hires-clock)
-  (start-reader))
+(defun start-with-slave-clock ()
+  (alexandria:doplist (key val (inspect-midihelper))
+    (assert (null val)))
+  (setf *slave-tick-chan* (make-nonblock-buf-channel))
+  (start-hires-clock *slave-tick-chan*)
+  (start-reader *slave-tick-chan*))
 
 (defun set-hires ()
   (setf *clock-chan* *tock-chan*))
