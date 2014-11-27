@@ -20,36 +20,83 @@
 (defun set-master-bpm (bpm)
   (setf *tick-time* (/ (/ 60 24) bpm)))
 
+
+(defun hires-tick (tick-chan microtick-intvl)
+  (! tick-chan (ev-tick));;FIXME - actually calculate microtick interval
+  (sleep microtick-intvl)
+  (loop repeat 3
+     do
+       (! tick-chan (ev-tick))
+       (sleep microtick-intvl)))
+
+(defun hires-semiquaver (tick-chan tick-intvl)
+  (loop repeat 4
+     do (hires-tick tick-chan (/ tick-intvl 4))))
+
+(defun lores-semiquaver (tick-chan tick-intvl)
+  (loop repeat 6
+     do (! tick-chan (ev-tick))
+       (sleep tick-intvl)))
+
 (let ((songpos 0)
-      (ticker-state :stopped))
-  (defun ticker (tick-chan ctrl-chan)
+      (ticker-state :stopped)
+      (last (get-internal-real-time))
+      (next (get-internal-real-time)))
+
+  (defun measure-tick-time ()
+    (assert (>= next last))
+    (let ((intvl (/ (- next last) 1000 )))
+      (setf last next)
+      (setf next (get-internal-real-time))
+      (if (> intvl 1/8);; 1/8 second => 20bpm - lower limit
+          0.005 ;;0.005 ms per tick => 500bpm - upper limit
+          intvl)))
+  
+  (defun set-songpos (ticks)
+  "Set song position, specified in 1/4 beats (same units as songpos pointer)"
+  (setf songpos (* ticks 24)))
+  
+  (defun stopped-handler (tick-chan ctrl-chan)
+    (match (? ctrl-chan)
+      ((property :EVENT-TYPE :SND_SEQ_EVENT_CONTINUE)
+       (! tick-chan (ev-songpos songpos))
+       (! tick-chan (ev-continue))
+       (setf ticker-state :running))
+      ((property :EVENT-TYPE :SND_SEQ_EVENT_START)
+       (setf songpos 0)
+       (! tick-chan (ev-songpos songpos))
+       (! tick-chan (ev-start))
+       (setf ticker-state :running))
+      ((property :EVENT-TYPE :SND_SEQ_EVENT_CLOCK)
+       (warn "received clock signal before control signal whilst in stopped state, ignoring"))))
+
+  (defun ticker (tick-chan ctrl-chan master-slave ppqn)
     "optional master clock"
     (multiple-value-bind (semiquavers rem)
-        (floor songpos 6)
+        (floor songpos (/ ppqn 4))
       (assert (= 0 rem))
       (print semiquavers))
-    (match ticker-state
-      (:stopped
-       (let ((ctrl-event (? ctrl-chan)))
-         (match ctrl-event
-           ((property :EVENT-TYPE :SND_SEQ_EVENT_CONTINUE)
-            (! tick-chan (ev-songpos songpos))
-            (! tick-chan (ev-continue))
-            (setf ticker-state :running))
-           ((property :EVENT-TYPE :SND_SEQ_EVENT_START)
-            (setf songpos 0)
-            (setf ticker-state :running)))))
-      (:running
+    (match (list ticker-state master-slave)
+      ((list :stopped _)
+        (stopped-handler tick-chan ctrl-chan))
+      ((list :running :slave)
        (pri-alt ((? ctrl-chan ctrl)
                  (match ctrl
                    ((property :EVENT-TYPE :SND_SEQ_EVENT_STOP)
                     (setf ticker-state :stopped))))
                 (otherwise
-                 (loop repeat 6
-                    do (! tick-chan (ev-tick))
-                      (sleep *tick-time*)
-                      (incf songpos))))))
-    (ticker tick-chan ctrl-chan)))
+                 (match ppqn
+                   (24 (lores-semiquaver tick-chan *tick-time*))
+                   (96 (hires-semiquaver tick-chan *tick-time*))))))
+      ((list :running :master)
+       (match (? ctrl-chan)
+         ((property :EVENT-TYPE :SND_SEQ_EVENT_STOP)
+          (setf ticker-state :stopped))
+         ((property :EVENT-TYPE :SND_SEQ_EVENT_CLOCK)
+          (match ppqn
+            (24 (! tick-chan (ev-tick)))
+            (96 (hires-tick tick-chan (measure-tick-time))))))))
+    (ticker tick-chan ctrl-chan master-slave ppqn)))
 
 (defvar *tick-thread* nil)
 
@@ -70,105 +117,35 @@
             (/ (* reps 60 1000)
                (* ppqn (- end-time start-time))))))
 
-(defvar *songpos-ticks* 0)
-
-(defun songpos ()
-  "This is song position, defined in 1/4 beats"
-  (match *clock-chan*
-    ((equal *tick-echo-chan*)
-     (floor *songpos-ticks* 6))
-    ((equal  *tock-chan*)
-     (floor *songpos-ticks* 24))))
-
-(defun set-songpos (ticks)
-  "Set song position, specified in 1/4 beats (same units as songpos pointer)"
-  (match *clock-chan*
-    ((equal *tick-echo-chan*)
-     (setf *songpos-ticks* (* ticks 6)))
-    ((equal  *tock-chan*)
-     (setf *songpos-ticks* (* ticks 24)))))
-
-(defun calculate-intvl (this next)
-  (assert (>= next this))
-  (let ((intvl (/ (- next this) ;; 4000
-                  4000
-                  )))
-    (if (> intvl (/ 1 8))
-        0.05
-        intvl)))
-
-(defun tocker (last-ticktime tick-chan)
-  "free-running clock multiplier"
-  (if (= 0 (nth-value 1 (songpos)))
-      (print (songpos)))
-  (let* ((event (? tick-chan))
-         (next-ticktime (get-internal-real-time))
-         (intvl (calculate-intvl last-ticktime next-ticktime)))
-    (match event
-      ((property :EVENT-TYPE :SND_SEQ_EVENT_CLOCK)
-       (! *tock-chan* event)
-       (! *tick-echo-chan* event)
-       (incf *songpos-ticks*)
-       (loop repeat 3
-          do
-            (sleep intvl)
-            (incf *songpos-ticks*)
-            (! *tock-chan* (ev-microtick)))
-       (setf last-ticktime next-ticktime))
-      ((property :EVENT-TYPE (or :SND_SEQ_EVENT_STOP
-                                 :SND_SEQ_EVENT_START
-                                 :SND_SEQ_EVENT_CONTINUE))
-       (! *tock-chan* event))
-      ((plist :EVENT-TYPE :SND_SEQ_EVENT_SONGPOS
-              :EVENT-DATA (property VALUE songpos))
-       (set-songpos songpos))
-      (_ (error "unknown event seen by timer thread ~A" event)
-         (sleep 1)))
-    (tocker last-ticktime tick-chan)))
-
-(defvar *tock-thread* nil)
-
-(defun start-hires-clock (tick-chan)
-  (assert (null *tock-thread*))
-  (setf *tock-thread*
-        (bt:make-thread
-         (lambda ()
-           (sleep 1)
-           (unwind-protect
-                (handler-case
-                    (tocker (get-internal-real-time) tick-chan)
-                  (stop-thread ()))
-             (setf *tock-thread* nil)))
-         :name "96ppqn clock")))
-
-(defun stop-hires-clock ()
-  (bt:interrupt-thread
-   *tock-thread* (lambda ()
-                   (error 'stop-thread))))
-
-(defun start-master-clock (tick-chan control-chan)
+(defun start-ticker (tick-chan control-chan master-slave ppqn)
   (assert (null *tick-thread*))
   (setf *tick-thread* (bt:make-thread (lambda ()
-                                        (ticker tick-chan control-chan))
+                                        (ticker tick-chan control-chan master-slave ppqn))
                                       :name "master clock")))
 
-(defun stop-master-clock ()
+(defun stop-ticker ()
   (bt:destroy-thread *tick-thread*)
   (setf *tick-thread* nil))
 
-(defun start-with-master-clock ()
+(defun start-with-master-clock (&optional (ppqn 96))
+  (assert (or (= ppqn 96)
+              (= ppqn 24)))
   (alexandria:doplist (key val (inspect-midihelper))
     (assert (null val)))
-  (setf *master-tick-chan* (make-nonblock-buf-channel))
-  (start-hires-clock *master-tick-chan*)
-  (start-master-clock *master-tick-chan* *slave-tick-chan*))
+  (drain-channel *master-tick-chan*)
+  (drain-channel  *slave-tick-chan*)
+  (start-reader *slave-tick-chan*)
+  (start-ticker *master-tick-chan* *slave-tick-chan* :master ppqn))
 
-(defun start-with-slave-clock ()
+(defun start-with-slave-clock (&optional (ppqn 96))
+  (assert (or (= ppqn 96)
+              (= ppqn 24)))
   (alexandria:doplist (key val (inspect-midihelper))
     (assert (null val)))
-  (setf *slave-tick-chan* (make-nonblock-buf-channel))
-  (start-hires-clock *slave-tick-chan*)
-  (start-reader *slave-tick-chan*))
+  (drain-channel *master-tick-chan*)
+  (drain-channel *slave-tick-chan*)
+  (start-reader *slave-tick-chan*)
+  (start-ticker *master-tick-chan* *slave-tick-chan* :slave ppqn))
 
 (defun set-hires ()
   (setf *clock-chan* *tock-chan*))

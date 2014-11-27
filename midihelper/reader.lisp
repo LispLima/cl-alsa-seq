@@ -7,9 +7,10 @@
                           :CAPACITY queue)))
 
 (defun drain-channel (chan)
-  (let ((buffer (calispel::buffer chan)))
-    (loop repeat (jpl-queues:capacity buffer)
-       do (jpl-queues:dequeue buffer))))
+  (loop (pri-alt ((? chan res)
+                  (print res))
+                 (otherwise
+                  (return-from drain-channel)))))
 
 (define-condition stop-thread (error)
   ())
