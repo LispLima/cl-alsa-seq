@@ -55,14 +55,20 @@
   (defun set-songpos (ticks)
   "Set song position, specified in 1/4 beats (same units as songpos pointer)"
   (setf songpos (* ticks 24)))
+
+  (defun get-songpos ()
+    "Get song position, in semiquavers"
+    (/ songpos 24))
+
   
   (defun stopped-handler (tick-chan ctrl-chan)
     (match (? ctrl-chan)
-      ((property :EVENT-TYPE :SND_SEQ_EVENT_CONTINUE)
+      ((property :event-type :snd_seq_event_continue)
        (! tick-chan (ev-songpos songpos))
        (! tick-chan (ev-continue))
        (setf ticker-state :running))
-      ((property :EVENT-TYPE :SND_SEQ_EVENT_START)
+      ((property :event-type :snd_seq_event_start)
+       (print "ping")
        (setf songpos 0)
        (! tick-chan (ev-songpos songpos))
        (! tick-chan (ev-start))
@@ -75,28 +81,31 @@
     (multiple-value-bind (semiquavers rem)
         (floor songpos (/ ppqn 4))
       (assert (= 0 rem))
+      (print master-slave)
+      (print ppqn)
       (print semiquavers))
     (match (list ticker-state master-slave)
       ((list :stopped _)
         (stopped-handler tick-chan ctrl-chan))
-      ((list :running :slave)
+      ((list :running :master)
        (pri-alt ((? ctrl-chan ctrl)
                  (match ctrl
                    ((property :EVENT-TYPE :SND_SEQ_EVENT_STOP)
                     (setf ticker-state :stopped))))
                 (otherwise
                  (match ppqn
-                   (24 (lores-semiquaver tick-chan *tick-time*))
-                   (96 (hires-semiquaver tick-chan *tick-time*))))))
-      ((list :running :master)
+                   (24 (lores-semiquaver tick-chan *tick-time*)
+                       (incf songpos 24))
+                   (96 (hires-semiquaver tick-chan *tick-time*)
+                       (incf songpos 24))))))
+      ((list :running :slave)
        (match (? ctrl-chan)
          ((property :EVENT-TYPE :SND_SEQ_EVENT_STOP)
           (setf ticker-state :stopped))
          ((property :EVENT-TYPE :SND_SEQ_EVENT_CLOCK)
           (match ppqn
             (24 (! tick-chan (ev-tick)))
-            (96 (hires-tick tick-chan (measure-tick-time))))))))
-    (ticker tick-chan ctrl-chan master-slave ppqn)))
+            (96 (hires-tick tick-chan (measure-tick-time))))))))))
 
 (defvar *tick-thread* nil)
 
@@ -120,7 +129,7 @@
 (defun start-ticker (tick-chan control-chan master-slave ppqn)
   (assert (null *tick-thread*))
   (setf *tick-thread* (bt:make-thread (lambda ()
-                                        (ticker tick-chan control-chan master-slave ppqn))
+                                        (loop (ticker tick-chan control-chan master-slave ppqn)))
                                       :name "master clock")))
 
 (defun stop-ticker ()
