@@ -1,12 +1,13 @@
 (in-package :midihelper)
 
+(defvar *clock-ctrl-chan* (make-nonblock-buf-channel))
+
 (defvar *clock-ochan*  (make-nonblock-buf-channel))
 
 (defvar *tick-time* 0.05)
 
 (defun set-master-bpm (bpm)
   (setf *tick-time* (/ (/ 60 24) bpm)))
-
 
 (defun hires-tick (tick-chan microtick-intvl)
   (! tick-chan (ev-tick));;FIXME - actually calculate microtick interval
@@ -113,11 +114,14 @@
             (/ (* reps 60 1000)
                (* ppqn (- end-time start-time))))))
 
-(defun start-clock (tick-chan control-chan master-slave ppqn)
+(defun start-clock (ctrl-chan master-slave ppqn)
   (assert (null *clock-thread*))
-  (setf *clock-thread* (bt:make-thread (lambda ()
-                                        (loop (ticker tick-chan control-chan master-slave ppqn)))
-                                      :name "midihelper clock")))
+  (setf *clock-thread*
+        (bt:make-thread
+         (lambda ()
+           (loop (ticker *clock-ochan* ctrl-chan master-slave ppqn)))
+         :name "midihelper clock")))
+
 (defun stop-clock ()
   (bt:destroy-thread *clock-thread*)
   (setf *clock-thread* nil))

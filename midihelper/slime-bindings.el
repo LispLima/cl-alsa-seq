@@ -6,15 +6,15 @@
 
 (defun ev-start ()
   (interactive)
-  (slime-interactive-eval "(calispel:! midihelper:*ctrl-chan* midihelper:(ev-start))"))
+  (slime-interactive-eval "(calispel:! midihelper:*clock-ctrl-chan* (midihelper:ev-start))"))
 
 (defun ev-stop ()
   (interactive)
-  (slime-interactive-eval "(calispel:! midihelper:*ctrl-chan* midihelper:(ev-stop))"))
+  (slime-interactive-eval "(calispel:! midihelper:*clock-ctrl-chan* (midihelper:ev-stop))"))
 
 (defun ev-continue ()
   (interactive)
-  (slime-interactive-eval "(calispel:! midihelper:*ctrl-chan* midihelper:(ev-continue))"))
+  (slime-interactive-eval "(calispel:! midihelper:*clock-ctrl-chan* (midihelper:ev-continue))"))
 
 (global-set-key (kbd "M-m") 'ev-stop)
 (global-set-key (kbd "M-k") 'ev-continue)

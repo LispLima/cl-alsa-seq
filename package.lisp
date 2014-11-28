@@ -33,6 +33,7 @@
 (defpackage #:midihelper
   (:use #:cl #:cffi #:cl-alsaseq #:optima #:optima.extra #:calispel)
   (:export :*clock-ochan*
+           :*clock-ctrl-chan*
            :*reader-ichan*
            :*reader-ochan*
            :set-master-bpm
@@ -63,4 +64,4 @@
                 #:o!-symbol-p
                 #:o!-symbol-to-g!-symbol
                 #:defmacro!)
-  (:nicknames #:cl-ml))
+  (:nicknames #:mloops))

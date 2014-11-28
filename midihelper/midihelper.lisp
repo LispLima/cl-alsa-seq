@@ -1,7 +1,7 @@
 (in-package :midihelper)
 (defun inspect-midihelper ()
   (list '*reader-thread* *reader-thread*
-        '*tick-thread* *tick-thread*
+        '*clock-thread* *clock-thread*
         '*seq* *seq*))
 
 (defun start-midihelper (&optional
@@ -14,9 +14,9 @@
   (alexandria:doplist (key val (inspect-midihelper))
     (assert (null val)))
   (drain-channel *clock-ochan*)
-  (let ((clock-ichan (make-nonblock-buf-channel)))
-    (start-reader clock-ichan)
-    (start-ticker *clock-ochan* clock-ichan master-slave ppqn)))
+  (drain-channel *clock-ctrl-chan*)
+  (start-reader *clock-ctrl-chan*)
+  (start-clock *clock-ctrl-chan* master-slave ppqn))
 
 (defun check-midihelper ()
   (alexandria:doplist

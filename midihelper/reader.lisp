@@ -15,7 +15,6 @@
 (define-condition stop-thread (error)
   ())
 
-(defvar *reader-ichan* (make-nonblock-buf-channel))
 (defvar *reader-ochan* (make-nonblock-buf-channel))
 
 (defmacro if-gesture (&body body)
@@ -55,10 +54,8 @@
      ,@(mapcar #'macroexpand
               clauses)))
 
-(defun midi-input (seq clock-ichan reader-ichan reader-ochan)
-  (let ((mess
-         (pri-alt ((? reader-ichan))
-                  (otherwise (recv seq)))))
+(defun midi-input (seq clock-ichan reader-ochan)
+  (let ((mess (recv seq)))
     (macromatch mess
       (if-gesture
         (! reader-ochan mess))
@@ -78,7 +75,6 @@
                                      (open-port "in" seq :input)
                                      (midi-input seq
                                                  clock-ichan
-                                                 *reader-ichan*
                                                  *reader-ochan*
                                                  ))
                                  (stop-thread ()))
