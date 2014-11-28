@@ -80,12 +80,12 @@
   ;; (drain-channel *midi-in-chan*)
   (let ((port 0;; (open-port "foo" seq)
           ))
-    (loop (pri-alt ((? *clock-chan* tick)
+    (loop (pri-alt ((? *clock-ochan* tick)
                     (mapcar (lambda (event)
                               (send-event event seq port))
                             (loop-read mloop))
                     (track-songpos tick mloop))
-                   ((? *midi-in-chan* event) (loop-write-gesture
+                   ((? *reader-ochan* event) (loop-write-gesture
                                                 event
                                                 mloop))))))
 
