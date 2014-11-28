@@ -30,7 +30,7 @@
            :send-control
            ))
 
-(defpackage #:cl-alsaseq.util
+(defpackage #:midihelper
   (:use #:cl #:cffi #:cl-alsaseq #:optima #:optima.extra #:calispel)
   (:export :*clock-chan*
            :*midi-in-chan*
@@ -39,8 +39,7 @@
            :set-lores
            :bpm-test
            :inspect-midihelper
-           :start-with-master-clock
-           :start-with-slave-clock
+           :start-midihelper
            :stop-midihelper
            :check-midihelper
            :if-gesture
@@ -48,14 +47,12 @@
            :macromatch
            :drain-channel
            :send-event
-           :zap-channels
            :stop-reader :stop-writer
            :start-reader :start-writer
-           :start-hires-clock :stop-hires-clock
            ))
 
 (defpackage #:cl-midiloops
-  (:use #:cl #:cl-alsaseq #:cl-alsaseq.util #:optima #:optima.extra #:calispel)
+  (:use #:cl #:cl-alsaseq #:midihelper #:optima #:optima.extra #:calispel)
   (:import-from :let-over-lambda
                 #:g!-symbol-p
                 #:defmacro/g!

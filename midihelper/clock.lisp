@@ -51,7 +51,7 @@
       (if (> intvl 1/8);; 1/8 second => 20bpm - lower limit
           0.005 ;;0.005 ms per tick => 500bpm - upper limit
           intvl)))
-  
+
   (defun set-songpos (ticks)
   "Set song position, specified in 1/4 beats (same units as songpos pointer)"
   (setf songpos (* ticks 24)))
@@ -60,7 +60,7 @@
     "Get song position, in semiquavers"
     (/ songpos 24))
 
-  
+
   (defun stopped-handler (tick-chan ctrl-chan)
     (match (? ctrl-chan)
       ((property :event-type :snd_seq_event_continue)
@@ -131,33 +131,6 @@
   (setf *tick-thread* (bt:make-thread (lambda ()
                                         (loop (ticker tick-chan control-chan master-slave ppqn)))
                                       :name "master clock")))
-
 (defun stop-ticker ()
   (bt:destroy-thread *tick-thread*)
   (setf *tick-thread* nil))
-
-(defun start-with-master-clock (&optional (ppqn 96))
-  (assert (or (= ppqn 96)
-              (= ppqn 24)))
-  (alexandria:doplist (key val (inspect-midihelper))
-    (assert (null val)))
-  (drain-channel *master-tick-chan*)
-  (drain-channel  *slave-tick-chan*)
-  (start-reader *slave-tick-chan*)
-  (start-ticker *master-tick-chan* *slave-tick-chan* :master ppqn))
-
-(defun start-with-slave-clock (&optional (ppqn 96))
-  (assert (or (= ppqn 96)
-              (= ppqn 24)))
-  (alexandria:doplist (key val (inspect-midihelper))
-    (assert (null val)))
-  (drain-channel *master-tick-chan*)
-  (drain-channel *slave-tick-chan*)
-  (start-reader *slave-tick-chan*)
-  (start-ticker *master-tick-chan* *slave-tick-chan* :slave ppqn))
-
-(defun set-hires ()
-  (setf *clock-chan* *tock-chan*))
-
-(defun set-lores ()
-  (setf *clock-chan* *tick-echo-chan*))
