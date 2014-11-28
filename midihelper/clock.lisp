@@ -1,19 +1,6 @@
-(in-package :cl-alsaseq.util)
+(in-package :midihelper)
 
-
-(defvar *master-tick-chan* (make-nonblock-buf-channel))
-
-(defvar *slave-tick-chan* (make-nonblock-buf-channel))
-
-(defvar *tick-echo-chan* (make-nonblock-buf-channel))
-
-(defvar *tock-chan*  (make-nonblock-buf-channel))
-
-(defvar *clock-chan* *tock-chan*)
-
-(defun zap-channels ()
-  (mapcar (lambda (sym) (unintern sym))
-          '(*master-tick-chan* *slave-tick-chan* *tick-echo-chan* *tock-chan* *clock-chan*)))
+(defvar *clock-ochan*  (make-nonblock-buf-channel))
 
 (defvar *tick-time* 0.05)
 
@@ -107,9 +94,9 @@
             (24 (! tick-chan (ev-tick)))
             (96 (hires-tick tick-chan (measure-tick-time))))))))))
 
-(defvar *tick-thread* nil)
+(defvar *clock-thread* nil)
 
-(defun bpm-test (&optional (ppqn 96) (clock-chan *clock-chan*))
+(defun bpm-test (&optional (ppqn 96) (clock-chan *clock-ochan*))
   ;; (drain-channel clock-chan)
   ;; clear buffer of stale ticks
   (? clock-chan)
@@ -126,11 +113,11 @@
             (/ (* reps 60 1000)
                (* ppqn (- end-time start-time))))))
 
-(defun start-ticker (tick-chan control-chan master-slave ppqn)
-  (assert (null *tick-thread*))
-  (setf *tick-thread* (bt:make-thread (lambda ()
+(defun start-clock (tick-chan control-chan master-slave ppqn)
+  (assert (null *clock-thread*))
+  (setf *clock-thread* (bt:make-thread (lambda ()
                                         (loop (ticker tick-chan control-chan master-slave ppqn)))
-                                      :name "master clock")))
-(defun stop-ticker ()
-  (bt:destroy-thread *tick-thread*)
-  (setf *tick-thread* nil))
+                                      :name "midihelper clock")))
+(defun stop-clock ()
+  (bt:destroy-thread *clock-thread*)
+  (setf *clock-thread* nil))

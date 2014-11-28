@@ -1,6 +1,6 @@
-(in-package :cl-alsaseq.util)
+(in-package :midihelper)
 (defun inspect-midihelper ()
-  (list '*midi-in-thread* *midi-in-thread*
+  (list '*reader-thread* *reader-thread*
         '*tick-thread* *tick-thread*
         '*seq* *seq*))
 
@@ -9,12 +9,14 @@
                            (ppqn 96))
   (assert (or (= ppqn 96)
               (= ppqn 24)))
+  (assert (or (eq master-slave :master)
+              (eq master-slave :slave)))
   (alexandria:doplist (key val (inspect-midihelper))
     (assert (null val)))
-  (drain-channel *master-tick-chan*)
-  (drain-channel *slave-tick-chan*)
-  (start-reader *slave-tick-chan*)
-  (start-ticker *master-tick-chan* *slave-tick-chan* :slave ppqn))
+  (drain-channel *clock-ochan*)
+  (let ((clock-ichan (make-nonblock-buf-channel)))
+    (start-reader clock-ichan)
+    (start-ticker *clock-ochan* clock-ichan master-slave ppqn)))
 
 (defun check-midihelper ()
   (alexandria:doplist
@@ -24,8 +26,7 @@
 
 (defun stop-midihelper ()
   (check-midihelper)
-  (if *midi-in-thread* (stop-reader))
+  (if *reader-thread* (stop-reader))
   (if *seq* (stop-writer))
-  (if *tick-thread* (stop-master-clock))
-  (if *tock-thread* (stop-hires-clock))
+  (if *clock-thread* (stop-clock))
   (inspect-midihelper))

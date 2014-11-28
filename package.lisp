@@ -32,12 +32,10 @@
 
 (defpackage #:midihelper
   (:use #:cl #:cffi #:cl-alsaseq #:optima #:optima.extra #:calispel)
-  (:export :*clock-chan*
-           :*midi-in-chan*
+  (:export :*clock-ochan*
+           :*reader-ichan*
+           :*reader-ochan*
            :set-master-bpm
-           :set-hires
-           :set-lores
-           :bpm-test
            :inspect-midihelper
            :start-midihelper
            :stop-midihelper
@@ -47,8 +45,14 @@
            :macromatch
            :drain-channel
            :send-event
-           :stop-reader :stop-writer
-           :start-reader :start-writer
+           :ev-noteon
+           :ev-noteoff
+           :ev-tick
+           :ev-microtick
+           :ev-start
+           :ev-stop
+           :ev-continue
+           :ev-songpos
            ))
 
 (defpackage #:cl-midiloops

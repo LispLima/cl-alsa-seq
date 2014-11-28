@@ -1,4 +1,4 @@
-(in-package :cl-alsaseq.util)
+(in-package :midihelper)
 
 (defvar *seq* nil);;sequence struct
 (defvar **seq nil);;pointer to sequence struct (for memory deallocation)

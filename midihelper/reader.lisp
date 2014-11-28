@@ -1,4 +1,4 @@
-(in-package :cl-alsaseq.util)
+(in-package :midihelper)
 
 (defun make-nonblock-buf-channel (&optional (queue 10))
   (make-instance 'calispel:channel
@@ -15,7 +15,8 @@
 (define-condition stop-thread (error)
   ())
 
-(defvar *midi-in-chan* (make-nonblock-buf-channel))
+(defvar *reader-ichan* (make-nonblock-buf-channel))
+(defvar *reader-ochan* (make-nonblock-buf-channel))
 
 (defmacro if-gesture (&body body)
   `((plist :EVENT-TYPE (guard event-type (or (equal event-type :snd_seq_event_noteoff)
@@ -54,34 +55,37 @@
      ,@(mapcar #'macroexpand
               clauses)))
 
-(defun midi-input (seq tick-chan gesture-chan)
-  (open-port "in" seq :input)
-  (loop (let ((mess (recv seq)))
-          (macromatch mess
-            (if-gesture
-              (! gesture-chan mess))
-            (if-clock 
-              (! tick-chan mess))))))     
+(defun midi-input (seq clock-ichan reader-ichan reader-ochan)
+  (let ((mess
+         (pri-alt ((? reader-ichan))
+                  (otherwise (recv seq)))))
+    (macromatch mess
+      (if-gesture
+        (! reader-ochan mess))
+      (if-clock
+        (! clock-ichan mess)))))
 
-(defvar *midi-in-thread* nil)
+(defvar *reader-thread* nil)
 
-(defun start-reader (tick-chan)
-  (assert (null *midi-in-thread*))
-  (setf *midi-in-thread*
+(defun start-reader (clock-ichan)
+  (assert (null *reader-thread*))
+  (setf *reader-thread*
         (bt:make-thread (lambda ()
                           (sleep 1)
                           (unwind-protect
                                (handler-case
                                    (with-seq (seq :name "CL")
+                                     (open-port "in" seq :input)
                                      (midi-input seq
-                                                 tick-chan
-                                                 *midi-in-chan*
+                                                 clock-ichan
+                                                 *reader-ichan*
+                                                 *reader-ochan*
                                                  ))
                                  (stop-thread ()))
-                            (setf *midi-in-thread* nil)))
+                            (setf *reader-thread* nil)))
                         :name "simple-midi-reader")))
 
 (defun stop-reader ()
   (bt:interrupt-thread
-   *midi-in-thread* (lambda ()
+   *reader-thread* (lambda ()
                       (error 'stop-thread))))
