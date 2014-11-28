@@ -2,7 +2,6 @@
 (defun inspect-midihelper ()
   (list '*midi-in-thread* *midi-in-thread*
         '*tick-thread* *tick-thread*
-        '*tock-thread* *tock-thread*
         '*seq* *seq*))
 
 ;; (defun start-midihelper ()
