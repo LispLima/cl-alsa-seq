@@ -55,7 +55,7 @@
            :ev-songpos
            ))
 
-(defpackage #:cl-midiloops
+(defpackage #:midiloops
   (:use #:cl #:cl-alsaseq #:midihelper #:optima #:optima.extra #:calispel)
   (:import-from :let-over-lambda
                 #:g!-symbol-p

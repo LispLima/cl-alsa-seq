@@ -1,4 +1,4 @@
-(in-package :cl-midiloops)
+(in-package :midiloops)
 
 (defvar *ticks* 0)
 
