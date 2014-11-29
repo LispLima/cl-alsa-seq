@@ -105,15 +105,13 @@
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
-(defun loop-push-extend (loop-id &key (push-extend t))
+(defun loop-push-extend (loop-id)
   (list :EVENT-TYPE :LOOP-EXTEND
-        :LOOP-ID loop-id
-        :PUSH-EXTEND push-extend))
+        :LOOP-ID loop-id))
 
-(defun loop-overdub (loop-id &key (overdub t))
+(defun loop-overdub (loop-id)
   (list :EVENT-TYPE :LOOP-OVERDUB
-        :LOOP-ID loop-id
-        :OVERDUB overdub))
+        :LOOP-ID loop-id))
 
 (defun loop-play (loop-id)
   (list :EVENT-TYPE :LOOP-PLAY
@@ -161,34 +159,45 @@
     ((plist :event-type (or :microtick :snd_seq_event_clock)
             :songpos songpos)
      (seek-to mloop songpos))
-    ((property :event-type
-               :push-extend)
-     (setf (getf mloop :off)
-           )
-    ((property :event-type
-               :loop-overdub)
-     )
-    ((property :event-type
-               :loop-play)
-     )
-    ((property :event-type
-               :loop-stop)
-     )
-    ((property :event-type
-               :loop-erase)
-     )
+    ((plist :event-type :loop-push-extend)
+     (setf (getf mloop :rec) :push-extend))
+    ((plist :event-type :loop-overdub)
+     (setf (getf mloop :rec) :overdub))
+    ((plist :event-type :loop-overwrite)
+     (setf (getf mloop :rec) :overwrite))
+    ((plist :event-type :loop-play)
+     (setf (getf mloop :play) t))
+    ((plist :event-type :loop-stop)
+     (setf (getf mloop :play) nil)
+     (setf (getf mloop :rec) nil))
+    ((plist :event-type :loop-erase)
+     (setf (getf mloop :play) nil)
+     (let ((seq (getf mloop :seq)))
+       (loop for i below (length seq)
+          do (setf (aref seq i) nil))
+       (setf (fill-pointer seq)
+             0)))
     ((property :event-type
                :loop-cycle)
-     )
+     (warn "loop-cycle not yet implemented"))
     (if-gesture
       (match mloop
         ((plist :rec (not nil))
-         )
-
+         (let ((seq (getf mloop :seq)))
+           (push event (aref seq
+                             (getf mloop :pos)))))))))
 
 (defun run-loop-stack ()
   (loop for event = (pri-alt ((? *clock-ochan*))
                              ((? *reader-ochan*)))
      do
        (loop for mloop in *loop-stack*
-          do (dispatch-event event mloop))))
+          do
+            (match (list event mloop)
+              ((or (not (list (plist :loop-id _)
+                              _));;dispatch events with no loop-id info
+                   (list (plist :loop-id (guard ev-loop-id
+                                                (or (equal ev-loop-id :all)
+                                                    (equal ev-loop-id loop-id))))
+                         (plist :loop-id loop-id)));;dispatch events where loop-ids match
+               (dispatch-event event mloop))))))
