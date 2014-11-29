@@ -1,7 +1,5 @@
 (in-package :midiloops)
 
-(defvar *ticks* 0)
-
 (defconstant +n-loops+ 4)
 (defconstant +default-loop-res+ 96)
 (defconstant +default-loop-len+ 8)
@@ -15,7 +13,8 @@
   (list
    :seq (make-array (* +default-loop-res+
                        +default-loop-len+) :initial-element nil :fill-pointer 0)
-   :pos 0;;current position on loop tape
+   :pos 0;;loop tape head
+   :off 0;;loop start time clock microticks
    :run nil;;flag for whether to run loop tape
    :play nil;;flag for whether to play events on loop tape
    :rec nil;;flag for whether to record incoming events
@@ -28,28 +27,6 @@
   (let ((newloop (new-m-loop)))
     (setf (getf newloop :seq) (make-array (/ (* bars major 4 res) minor) :initial-element nil))
     newloop))
-
-(defun track-songpos (event loop)
-  (symbol-macrolet ((pos (getf loop :pos)))
-    (match event
-      ((or (plist :event-type :snd_seq_event_clock)
-           "tack" "tock")
-       (progn
-         (incf pos)
-         (multiple-value-bind (quarters rem)
-             (floor pos 96)
-           (if (= 0 rem)
-               (print quarters)))))
-      ((plist :event-type :snd_seq_event_songpos
-              :event-data (plist value 16ths))
-       (progn
-         (format t "~%seek to beat ~A~%" (/ 16ths 4.0))
-         (setf pos (* 24 16ths)))))))
-
-;; (defmacro! mloop-ref (mloop pos)
-;;   `(aref (getf ,mloop :seq)
-;;          (nth-value 1 (floor ,pos
-;;                              (length (getf ,mloop :seq))))))
 
 (defun mloop-idx (mloop)
   (nth-value 1 (floor (getf mloop :pos)
@@ -156,10 +133,10 @@
         :LOOP-ID loop-id))
 
 (defvar *loop-stack* (append (loop for i from 1 to +n-loops+
-                                collect (cons (intern (format nil "LOOP~D" i) :keyword)
-                                              (new-m-loop)))
-                             (list :metro (make-jazz-metro 2))
-                             (list :jazz-metro (make-simple-metro 2))))
+                                append (list i
+                                             (new-m-loop)))
+                             (list :metro (make-simple-metro 2))
+                             (list :jazz-metro (make-jazz-metro 2))))
 
 (defmacro if-loop-ctrl (&body body)
   `((plist :EVENT-TYPE (guard event-type (or (equal event-type
@@ -176,20 +153,42 @@
                                                     :loop-cycle))))
     ,@body))
 
+(defun seek-to (mloop songpos)
+  (error "under construction"))
+
+(defun dispatch-event (event mloop)
+  (macromatch event
+    ((plist :event-type (or :microtick :snd_seq_event_clock)
+            :songpos songpos)
+     (seek-to mloop songpos))
+    ((property :event-type
+               :push-extend)
+     (setf (getf mloop :off)
+           )
+    ((property :event-type
+               :loop-overdub)
+     )
+    ((property :event-type
+               :loop-play)
+     )
+    ((property :event-type
+               :loop-stop)
+     )
+    ((property :event-type
+               :loop-erase)
+     )
+    ((property :event-type
+               :loop-cycle)
+     )
+    (if-gesture
+      (match mloop
+        ((plist :rec (not nil))
+         )
+
+
 (defun run-loop-stack ()
   (loop for event = (pri-alt ((? *clock-ochan*))
                              ((? *reader-ochan*)))
      do
-       (macromatch event
-         (if-gesture
-           (loop for mloop in *loop-stack*
-              do (loop-write-gesture event mloop)))
-         (if-clock
-           (loop for mloop in *loop-stack*
-              do
-                (track-songpos event mloop)
-                (mapcar (lambda (event)
-                          (send-event event))
-                        (loop-read mloop))))
-         (if-loop-ctrl
-           ))))
+       (loop for mloop in *loop-stack*
+          do (dispatch-event event mloop))))

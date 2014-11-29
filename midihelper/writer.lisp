@@ -67,11 +67,15 @@
   (list :EVENT-TYPE :SND_SEQ_EVENT_NOTEOFF
         :EVENT-DATA `(VELOCITY ,velocity NOTE ,note CHANNEL ,channel)))
 
-(defun ev-tick ()
-  '(:EVENT-TYPE :SND_SEQ_EVENT_CLOCK))
+(defun ev-tick (&optional songpos)
+  `(:EVENT-TYPE :SND_SEQ_EVENT_CLOCK ,@(if songpos
+                                           (list :songpos
+                                                 songpos))))
 
-(defun ev-microtick ()
-  '(:EVENT-TYPE :MICROTICK))
+(defun ev-microtick (&optional songpos)
+  `(:EVENT-TYPE :MICROTICK ,@(if songpos
+                                 (list :songpos
+                                       songpos))))
 
 (defun ev-start ()
   '(:EVENT-TYPE :SND_SEQ_EVENT_START))

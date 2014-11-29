@@ -9,27 +9,27 @@
 (defun set-master-bpm (bpm)
   (setf *tick-time* (/ (/ 60 24) bpm)))
 
-(defun hires-tick (tick-chan microtick-intvl)
-  (! tick-chan (ev-tick));;FIXME - actually calculate microtick interval
-  (sleep microtick-intvl)
-  (loop repeat 3
-     do
-       (! tick-chan (ev-tick))
-       (sleep microtick-intvl)))
-
-(defun hires-semiquaver (tick-chan tick-intvl)
-  (loop repeat 4
-     do (hires-tick tick-chan (/ tick-intvl 4))))
-
-(defun lores-semiquaver (tick-chan tick-intvl)
-  (loop repeat 6
-     do (! tick-chan (ev-tick))
-       (sleep tick-intvl)))
-
 (let ((songpos 0)
       (ticker-state :stopped)
       (last (get-internal-real-time))
       (next (get-internal-real-time)))
+
+  (defun hires-tick (tick-chan microtick-intvl)
+    (! tick-chan (ev-tick songpos))
+    (sleep microtick-intvl)
+    (loop repeat 3
+       do
+         (! tick-chan (ev-microtick songpos))
+         (sleep microtick-intvl)))
+
+  (defun hires-semiquaver (tick-chan tick-intvl)
+    (loop repeat 6
+       do (hires-tick tick-chan (/ tick-intvl 4))))
+
+  (defun lores-semiquaver (tick-chan tick-intvl)
+    (loop repeat 6
+       do (! tick-chan (ev-tick songpos))
+         (sleep tick-intvl)))
 
   (defun measure-tick-time ()
     (assert (>= next last))
@@ -48,7 +48,6 @@
     "Get song position, in semiquavers"
     (/ songpos 24))
 
-
   (defun stopped-handler (tick-chan ctrl-chan)
     (match (? ctrl-chan)
       ((property :event-type :snd_seq_event_continue)
@@ -66,7 +65,7 @@
   (defun ticker (tick-chan ctrl-chan master-slave ppqn)
     "optional master clock"
     (multiple-value-bind (semiquavers rem)
-        (floor songpos (/ ppqn 4))
+        (floor songpos 24)
       (assert (= 0 rem))
       semiquavers
       ;; (print master-slave)
@@ -93,7 +92,7 @@
           (setf ticker-state :stopped))
          ((property :EVENT-TYPE :SND_SEQ_EVENT_CLOCK)
           (match ppqn
-            (24 (! tick-chan (ev-tick)))
+            (24 (! tick-chan (ev-tick songpos)))
             (96 (hires-tick tick-chan (measure-tick-time))))))))))
 
 (defvar *clock-thread* nil)
