@@ -128,12 +128,6 @@
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
-(defvar *loop-stack* (append (loop for i from 1 to +n-loops+
-                                collect (cons (intern (format nil "LOOP~D" i) :keyword)
-                                              (new-m-loop)))
-                             (list :metro (make-jazz-metro 2))
-                             (list :jazz-metro (make-simple-metro 2))))
-
 (defun loop-push-extend (loop-id &key (push-extend t))
   (list :EVENT-TYPE :LOOP-EXTEND
         :LOOP-ID loop-id
@@ -160,3 +154,42 @@
   "This is the typical create, define-endpoint, overdub cycle"
   (list :EVENT-TYPE :LOOP-CYCLE
         :LOOP-ID loop-id))
+
+(defvar *loop-stack* (append (loop for i from 1 to +n-loops+
+                                collect (cons (intern (format nil "LOOP~D" i) :keyword)
+                                              (new-m-loop)))
+                             (list :metro (make-jazz-metro 2))
+                             (list :jazz-metro (make-simple-metro 2))))
+
+(defmacro if-loop-ctrl (&body body)
+  `((plist :EVENT-TYPE (guard event-type (or (equal event-type
+                                                    :push-extend)
+                                             (equal event-type
+                                                    :loop-overdub)
+                                             (equal event-type
+                                                    :loop-play)
+                                             (equal event-type
+                                                    :loop-stop)
+                                             (equal event-type
+                                                    :loop-erase)
+                                             (equal event-type
+                                                    :loop-cycle))))
+    ,@body))
+
+(defun run-loop-stack ()
+  (loop for event = (pri-alt ((? *clock-ochan*))
+                             ((? *reader-ochan*)))
+     do
+       (macromatch event
+         (if-gesture
+           (loop for mloop in *loop-stack*
+              do (loop-write-gesture event mloop)))
+         (if-clock
+           (loop for mloop in *loop-stack*
+              do
+                (track-songpos event mloop)
+                (mapcar (lambda (event)
+                          (send-event event))
+                        (loop-read mloop))))
+         (if-loop-ctrl
+           ))))
