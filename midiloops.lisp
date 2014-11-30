@@ -129,9 +129,12 @@
   (setf (getf mloop :play) :repeat)
   (symbol-macrolet ((off (getf mloop :off)))
     (setf off (* 96 (round songpos 96)))
-    (loop for i from off to songpos
-       do (mapcar #'send-event
-                  (aref (getf mloop :seq) i)))))
+    (loop for i from off to (- songpos 1)
+       do
+         (print (- i off))
+         (mapcar #'send-event
+                 (aref (getf mloop :seq)
+                       (- i off))))))
 
 (defun loop-continue (mloop)
   (setf (getf mloop :play) :repeat))
@@ -215,7 +218,8 @@
        (seek-to mloop songpos)
        (setf last-songpos songpos)
        (match mloop
-         ((plist :play (not nil))
+         ((plist :play (not nil)
+                 :off (guard off (<= off songpos)))
           (mapcar (lambda (ev)
                     (send-event ev))
                   (aref (getf mloop :seq)
@@ -232,9 +236,10 @@
        (loop-overwrite mloop))
       ((plist :event-type :loop-continue)
        (loop-continue mloop))
-      ((plist :event-type (or :loop-play
-                              :SND_SEQ_EVENT_START))
+      ((plist :event-type :loop-play)
        (loop-play mloop last-songpos))
+      ((plist :event-type :SND_SEQ_EVENT_START)
+       (loop-play mloop 0))
       ((plist :event-type :loop-stop)
        (loop-stop mloop))
       ((plist :event-type :loop-erase)
@@ -244,6 +249,8 @@
       (if-gesture
         (store-gesture event mloop)))))
 
+(defvar *send-clock* nil)
+
 (defun run-loop-stack ()
   ;; (drain-channel *clock-ochan*)
   (loop for event = (pri-alt ((? *clock-ochan* ev) ev)
@@ -251,7 +258,7 @@
      do
        (match event
          ((plist :event-type :snd_seq_event_clock)
-          (send-event event)))
+          (if *send-clock* (send-event event))))
        (loop for idx below (length *loop-stack*)
           do
             (match (list event (aref *loop-stack* idx))

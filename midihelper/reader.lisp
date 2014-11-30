@@ -73,10 +73,9 @@
                                (handler-case
                                    (with-seq (seq :name "CL")
                                      (open-port "in" seq :input)
-                                     (midi-input seq
-                                                 clock-ichan
-                                                 *reader-ochan*
-                                                 ))
+                                     (loop (midi-input seq
+                                                       clock-ichan
+                                                       *reader-ochan*)))
                                  (stop-thread ()))
                             (setf *reader-thread* nil)))
                         :name "simple-midi-reader")))
