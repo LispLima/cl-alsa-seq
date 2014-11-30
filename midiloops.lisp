@@ -74,11 +74,15 @@
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
-(defvar *loop-stack* `(,@(loop for i from 1 to +n-loops+
-                            collect (append `(:loop-id ,i)
-                                            (new-m-loop)))
-                         (:loop-id :metro ,@(make-simple-metro 2))
-                         (:loop-id :jazz-metro ,@(make-jazz-metro 2))))
+(defvar *loop-stack* (let ((looplist
+                              `(,@(loop for i from 1 to +n-loops+
+                                     collect (append `(:loop-id ,i)
+                                                     (new-m-loop)))
+                                  (:loop-id :metro ,@(make-simple-metro 2))
+                                  ;; (:loop-id :jazz-metro ,@(make-jazz-metro 2))
+                                  )))
+                       (make-array (length looplist)
+                                   :initial-contents looplist)))
 
 (defun simple-metro ()
   (nth +n-loops+ *loop-stack*))
@@ -248,16 +252,16 @@
        (match event
          ((plist :event-type :snd_seq_event_clock)
           (send-event event)))
-       (loop for mloop in *loop-stack*
+       (loop for idx below (length *loop-stack*)
           do
-            (match (list event mloop)
+            (match (list event (aref *loop-stack* idx))
               ((or (not (list (plist :loop-id _)
                               _));;dispatch events with no loop-id info
                    (list (plist :loop-id (guard ev-loop-id
                                                 (or (equal ev-loop-id :all)
                                                     (equal ev-loop-id loop-id))))
                          (plist :loop-id loop-id)));;dispatch events where loop-ids match
-               (dispatch-event event mloop))))))
+               (dispatch-event event (aref *loop-stack* idx)))))))
 
 (defmacro if-loop-ctrl (&body body)
   `((plist :EVENT-TYPE (guard event-type (or (equal event-type
