@@ -15,8 +15,7 @@
                        +default-loop-len+) :initial-element nil :fill-pointer 0)
    :pos 0;;loop tape head
    :off 0;;loop start time clock microticks
-   :run nil;;flag for whether to run loop tape
-   :play nil;;flag for whether to play events on loop tape
+   :play nil;;flag for whether to run loop tape
    :rec nil;;flag for whether to record incoming events
    :res +default-loop-res+
    ;; :ichan (make-nonblock-buf-channel)
@@ -27,44 +26,6 @@
   (let ((newloop (new-m-loop)))
     (setf (getf newloop :seq) (make-array (/ (* bars major 4 res) minor) :initial-element nil))
     newloop))
-
-(defun mloop-idx (mloop)
-  (nth-value 1 (floor (getf mloop :pos)
-                      (length (getf mloop :seq)))))
-
-(defun loop-read (mloop)
-  (aref (getf mloop :seq)
-        (mloop-idx mloop)))
-
-(defun loop-write (event mloop)
-  (let* ((ticks (mloop-idx mloop))
-         (seq (getf mloop :seq)))
-    (setf (aref seq ticks)
-          (cons event (aref seq ticks)))))
-
-(defun loop-write-gesture (event mloop)
-  (macromatch event
-    (if-gesture
-      (loop-write event mloop))))
-
-(defvar *my-mloop* (make-fixed-loop 2))
-
-(defun clear-dumb-loop ()
-  (setf *my-mloop* (make-fixed-loop 2)))
-
-(defun run-dumb-loop (&key seq (mloop *my-mloop*))
-  (check-midihelper)
-  ;; (drain-channel *midi-in-chan*)
-  (let ((port 0;; (open-port "foo" seq)
-          ))
-    (loop (pri-alt ((? *clock-ochan* tick)
-                    (mapcar (lambda (event)
-                              (send-event event seq port))
-                            (loop-read mloop))
-                    (track-songpos tick mloop))
-                   ((? *reader-ochan* event) (loop-write-gesture
-                                                event
-                                                mloop))))))
 
 (defparameter *default-tick-ev*
   '((:event-type :snd_seq_event_noteon
@@ -105,54 +66,128 @@
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
-(defun loop-push-extend (loop-id)
-  (list :EVENT-TYPE :LOOP-EXTEND
-        :LOOP-ID loop-id))
-
-(defun loop-overdub (loop-id)
-  (list :EVENT-TYPE :LOOP-OVERDUB
-        :LOOP-ID loop-id))
-
-(defun loop-play (loop-id)
-  (list :EVENT-TYPE :LOOP-PLAY
-        :LOOP-ID loop-id))
-
-(defun loop-stop (loop-id)
-  (list :EVENT-TYPE :LOOP-STOP
-        :LOOP-ID loop-id))
-
-(defun loop-erase (loop-id)
-  (list :EVENT-TYPE :LOOP-ERASE
-        :LOOP-ID loop-id))
-
-(defun loop-cycle (loop-id)
-  "This is the typical create, define-endpoint, overdub cycle"
-  (list :EVENT-TYPE :LOOP-CYCLE
-        :LOOP-ID loop-id))
-
 (defvar *loop-stack* (append (loop for i from 1 to +n-loops+
                                 append (list i
                                              (new-m-loop)))
                              (list :metro (make-simple-metro 2))
                              (list :jazz-metro (make-jazz-metro 2))))
 
-(defmacro if-loop-ctrl (&body body)
-  `((plist :EVENT-TYPE (guard event-type (or (equal event-type
-                                                    :push-extend)
-                                             (equal event-type
-                                                    :loop-overdub)
-                                             (equal event-type
-                                                    :loop-play)
-                                             (equal event-type
-                                                    :loop-stop)
-                                             (equal event-type
-                                                    :loop-erase)
-                                             (equal event-type
-                                                    :loop-cycle))))
-    ,@body))
+(defun ev-loop-push-extend (loop-id)
+  (list :EVENT-TYPE :LOOP-EXTEND
+        :LOOP-ID loop-id))
+
+(defun ev-loop-overdub (loop-id)
+  (list :EVENT-TYPE :LOOP-OVERDUB
+        :LOOP-ID loop-id))
+
+(defun ev-loop-play (loop-id)
+  (list :EVENT-TYPE :LOOP-PLAY
+        :LOOP-ID loop-id))
+
+(defun ev-loop-stop (loop-id)
+  (list :EVENT-TYPE :LOOP-STOP
+        :LOOP-ID loop-id))
+
+(defun ev-loop-erase (loop-id)
+  (list :EVENT-TYPE :LOOP-ERASE
+        :LOOP-ID loop-id))
+
+(defun ev-loop-cycle (loop-id)
+  "This is the typical create, define-endpoint, overdub cycle"
+  (list :EVENT-TYPE :LOOP-CYCLE
+        :LOOP-ID loop-id))
+
+(defun loop-overdub (mloop)
+  (match mloop
+    ((plist :play _
+            :rec _)
+     (setf (getf mloop :rec) :overdub))))
+
+(defun loop-overwrite (mloop)
+  (match mloop
+    ((plist :play _
+            :rec _)
+     (setf (getf mloop :rec) :overwrite))))
+
+(defun loop-play (mloop)
+  (match mloop
+    ((plist :play _
+            :rec _)
+     (setf (getf mloop :play)
+           :repeat))))
+
+(defun loop-push-extend (mloop)
+  (match mloop
+    ((plist :play _
+            :rec _)
+     (setf (getf mloop :play) :push-extend))))
+
+(defun loop-stop (mloop)
+  (match mloop
+    ((plist :play _
+            :rec _)
+     (setf (getf mloop :play) nil)
+     (setf (getf mloop :rec) nil))))
+
+(defun loop-erase (mloop)
+  (match mloop
+    ((plist :play _
+            :rec _)
+     (let ((seq (getf mloop :seq)))
+       (loop for i below (length seq)
+          do (setf (aref seq i) nil))
+       (setf (fill-pointer seq)
+             0)))))
+
+(defun loop-cycle (mloop)
+  (symbol-macrolet ((play (getf mloop :play))
+                    (rec (getf mloop :rec)))
+    (match mloop
+      ((plist :play nil
+              :seq (guard seq
+                          (= 0 (fill-pointer seq))))
+       (setf play :push-extend)
+       (setf rec :overwrite))
+      ((plist :play :push-extend
+              :rec :overwrite)
+       (setf play :repeat)
+       (setf rec nil))
+      ((plist :play :repeat)
+       (setf play nil)
+       (setf rec nil))
+      ((plist :play (or :push-extend
+                        nil))
+       (setf play :repeat)))))
+
+(defun store-gesture (event mloop)
+  (match mloop
+    ((plist :play _
+            :rec  (not nil))
+     (let ((seq (getf mloop :seq)))
+       (push event (aref seq
+                         (getf mloop :pos)))))))
 
 (defun seek-to (mloop songpos)
-  (error "under construction"))
+  (match mloop
+    ((plist :play play
+            :off off
+            :rec rec
+            :seq seq)
+     (symbol-macrolet ((pos (getf mloop :pos)))
+       (if (<= songpos off)
+           (match play
+             (:push-extend
+              (setf pos
+                    (- songpos off)))
+             (:repeat
+              (setf pos
+                    (floor (- songpos off)
+                           (fill-pointer seq)))))
+           (setf pos 0))
+       (match rec
+         (:overwrite
+          (setf (aref seq pos)
+                nil)))))))
 
 (defun dispatch-event (event mloop)
   (macromatch event
@@ -160,32 +195,21 @@
             :songpos songpos)
      (seek-to mloop songpos))
     ((plist :event-type :loop-push-extend)
-     (setf (getf mloop :rec) :push-extend))
+     (loop-push-extend mloop))
     ((plist :event-type :loop-overdub)
-     (setf (getf mloop :rec) :overdub))
+     (loop-overdub mloop))
     ((plist :event-type :loop-overwrite)
-     (setf (getf mloop :rec) :overwrite))
+     (loop-overwrite mloop))
     ((plist :event-type :loop-play)
-     (setf (getf mloop :play) t))
+     (loop-play mloop))
     ((plist :event-type :loop-stop)
-     (setf (getf mloop :play) nil)
-     (setf (getf mloop :rec) nil))
+     (loop-stop mloop))
     ((plist :event-type :loop-erase)
-     (setf (getf mloop :play) nil)
-     (let ((seq (getf mloop :seq)))
-       (loop for i below (length seq)
-          do (setf (aref seq i) nil))
-       (setf (fill-pointer seq)
-             0)))
-    ((property :event-type
-               :loop-cycle)
-     (warn "loop-cycle not yet implemented"))
+     (loop-erase mloop))
+    ((plist :event-type :loop-cycle)
+     (loop-cycle mloop))
     (if-gesture
-      (match mloop
-        ((plist :rec (not nil))
-         (let ((seq (getf mloop :seq)))
-           (push event (aref seq
-                             (getf mloop :pos)))))))))
+      (store-gesture event mloop))))
 
 (defun run-loop-stack ()
   (loop for event = (pri-alt ((? *clock-ochan*))
@@ -201,3 +225,18 @@
                                                     (equal ev-loop-id loop-id))))
                          (plist :loop-id loop-id)));;dispatch events where loop-ids match
                (dispatch-event event mloop))))))
+
+(defmacro if-loop-ctrl (&body body)
+  `((plist :EVENT-TYPE (guard event-type (or (equal event-type
+                                                    :push-extend)
+                                             (equal event-type
+                                                    :loop-overdub)
+                                             (equal event-type
+                                                    :loop-play)
+                                             (equal event-type
+                                                    :loop-stop)
+                                             (equal event-type
+                                                    :loop-erase)
+                                             (equal event-type
+                                                    :loop-cycle))))
+    ,@body))
