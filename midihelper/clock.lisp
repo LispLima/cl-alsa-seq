@@ -16,19 +16,24 @@
 
   (defun hires-tick (tick-chan microtick-intvl)
     (! tick-chan (ev-tick songpos))
+    (incf songpos)
     (sleep microtick-intvl)
     (loop repeat 3
        do
          (! tick-chan (ev-microtick songpos))
+         (incf songpos)
          (sleep microtick-intvl)))
 
   (defun hires-semiquaver (tick-chan tick-intvl)
     (loop repeat 6
-       do (hires-tick tick-chan (/ tick-intvl 4))))
+       do
+         (hires-tick tick-chan (/ tick-intvl 4))))
 
   (defun lores-semiquaver (tick-chan tick-intvl)
     (loop repeat 6
-       do (! tick-chan (ev-tick songpos))
+       do
+         (! tick-chan (ev-tick songpos))
+         (incf songpos)
          (sleep tick-intvl)))
 
   (defun measure-tick-time ()
@@ -82,10 +87,8 @@
                     (setf ticker-state :stopped))))
                 (otherwise
                  (match ppqn
-                   (24 (lores-semiquaver tick-chan *tick-time*)
-                       (incf songpos 24))
-                   (96 (hires-semiquaver tick-chan *tick-time*)
-                       (incf songpos 24))))))
+                   (24 (lores-semiquaver tick-chan *tick-time*))
+                   (96 (hires-semiquaver tick-chan *tick-time*))))))
       ((list :running :slave)
        (match (? ctrl-chan)
          ((property :EVENT-TYPE :SND_SEQ_EVENT_STOP)

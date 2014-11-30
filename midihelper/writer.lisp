@@ -8,12 +8,13 @@
   (assert (null **seq))
   (assert (null *seq*))
   (assert (null *my-ports*))
-  (setf **seq (open-seq "Main"))
+  (setf **seq (open-seq "CL"))
   (setf *seq* (mem-ref **seq :pointer))
   (setf *my-ports*
         (loop for i from 1 to 1
            collect (open-port (format nil "port~A" i)
-                              *seq*))))
+                              *seq*
+                              :output))))
 
 (defun stop-writer ()
   (assert **seq)
@@ -29,6 +30,7 @@
             :EVENT-DATA
             (plist ;; DURATION duration OFF_VELOCITY off_velocity
              VELOCITY velocity NOTE note CHANNEL channel))
+     (print description)
      (send-note velocity note channel event-type seq port))
     ((plist :EVENT-TYPE (guard event-type (or (equal event-type
                                                      :snd_seq_event_controller)

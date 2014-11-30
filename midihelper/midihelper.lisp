@@ -16,7 +16,8 @@
   (drain-channel *clock-ochan*)
   (drain-channel *clock-ctrl-chan*)
   (start-reader *clock-ctrl-chan*)
-  (start-clock *clock-ctrl-chan* master-slave ppqn))
+  (start-clock *clock-ctrl-chan* master-slave ppqn)
+  (start-writer))
 
 (defun check-midihelper ()
   (alexandria:doplist
