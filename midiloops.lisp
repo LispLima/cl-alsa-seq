@@ -285,3 +285,9 @@
                                              (equal event-type
                                                     :loop-cycle))))
     ,@body))
+(defun test-single-loop ()
+  (let* ((myloop (aref *loop-stack* 0))
+         (seq (getf myloop :seq)))
+    (loop-erase myloop)
+    (setf (fill-pointer seq) (* 96 4))
+    (loop-overdub myloop)))
