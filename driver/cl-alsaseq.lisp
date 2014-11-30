@@ -58,7 +58,11 @@
 
 (defun midi-data (*data event-type)
   "Mapping event-type and data pointer to lisp-readable midi data"
-  (cffi:mem-ref *data (cond-lookup)))
+  (let ((type (cond-lookup)))
+    (if type
+        (cffi:mem-ref *data type)
+        (warn "Received unknown data of type ~A"
+              (ev-int-key type)))))
 
 (defun describe-event (event)
   "take a raw cffi midi event and return plist representation"
