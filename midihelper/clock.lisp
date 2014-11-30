@@ -33,7 +33,7 @@
     (loop repeat 6
        do
          (! tick-chan (ev-tick songpos))
-         (incf songpos)
+         (incf songpos 4)
          (sleep tick-intvl)))
 
   (defun measure-tick-time ()

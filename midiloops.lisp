@@ -15,9 +15,9 @@
                        +default-loop-len+) :initial-element nil :fill-pointer 0)
    :pos 0;;loop tape head
    :off 0;;loop start time clock microticks
-   :play nil;;flag for whether to run loop tape
-   :rec nil;;flag for whether to record incoming events
-   :res +default-loop-res+
+   :play nil;; nil :push-extend :repeat
+   :rec nil;; nil :overwrite or :overdub
+   :res +default-loop-res+ ;; 96 or 24
    ;; :ichan (make-nonblock-buf-channel)
    ;; :ochan (make-nonblock-buf-channel)
    ))
@@ -28,12 +28,10 @@
     newloop))
 
 (defparameter *default-tick-ev*
-  '((:event-type :snd_seq_event_noteon
-     :EVENT-DATA (VELOCITY 127 NOTE 46 CHANNEL 0))))
+  (list (ev-noteon 0 46 127)))
 
 (defparameter *default-tock-ev*
-  '((:event-type :snd_seq_event_noteon
-     :EVENT-DATA (VELOCITY 80 NOTE 46 CHANNEL 0))))
+  (list (ev-noteon 0 46 67)))
 
 (defun make-simple-metro (bars
                           &rest rest
@@ -41,9 +39,14 @@
                             (tock-ev *default-tock-ev*)
                             (major 4) (minor 4) (res +default-loop-res+))
   (let* ((newloop (apply #'make-fixed-loop `(,bars ,@rest)))
-         (seq (getf newloop :seq)))
-    (loop for i below (length seq)
-       do (match (multiple-value-list (floor i (* res (/ minor 4))))
+         (seq (getf newloop :seq))
+         (beatlen (* res (/ minor 4)))
+         (barlen (* major beatlen))
+         (looplen (* barlen bars)))
+    (setf (fill-pointer seq) looplen)
+    (setf (getf newloop :play) :repeat)
+    (loop for i below looplen
+       do (match (multiple-value-list (floor i beatlen))
             ((list beats 0)
              (match (multiple-value-list (floor beats major))
                ((list _ 0)
@@ -57,20 +60,31 @@
                         &key (tick-ev *default-tick-ev*)
                           (major 4) (minor 4) (res +default-loop-res+))
   (let* ((newloop (apply #'make-fixed-loop `(,bars ,@rest)))
-         (seq (getf newloop :seq)))
-    (loop for i below (length seq)
-       do (match (multiple-value-list (floor i (* res (/ minor 4))))
+         (seq (getf newloop :seq))
+         (beatlen (* res (/ minor 4)))
+         (barlen (* major beatlen))
+         (looplen (* barlen bars)))
+    (setf (fill-pointer seq) looplen)
+    (setf (getf newloop :play) nil)
+    (loop for i below looplen
+       do (match (multiple-value-list (floor i beatlen))
             ((list beats 0)
              (match (multiple-value-list (floor beats major))
                ((list _ (guard barbeat (oddp barbeat)))
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
-(defvar *loop-stack* (append (loop for i from 1 to +n-loops+
-                   collect (append `(:loop-id ,i)
-                                  (new-m-loop)))
-                (list (append '(:loop-id :metro) (make-simple-metro 2))
-                      (append '(:loop-id :jazz-metro) (make-jazz-metro 2)))))
+(defvar *loop-stack* `(,@(loop for i from 1 to +n-loops+
+                            collect (append `(:loop-id ,i)
+                                            (new-m-loop)))
+                         (:loop-id :metro ,@(make-simple-metro 2))
+                         (:loop-id :jazz-metro ,@(make-jazz-metro 2))))
+
+(defun simple-metro ()
+  (nth +n-loops+ *loop-stack*))
+
+(defun jazz-metro ()
+  (nth (+ 1 +n-loops+) *loop-stack*))
 
 (defun ev-loop-push-extend (loop-id)
   (list :EVENT-TYPE :LOOP-EXTEND
@@ -196,11 +210,12 @@
               :songpos songpos)
        (seek-to mloop songpos)
        (setf last-songpos songpos)
-       (mapcar (lambda (ev)
-                 (print ev)
-                 (send-event ev))
-               (aref (getf mloop :seq)
-                     (getf mloop :pos)))
+       (match mloop
+         ((plist :play (not nil))
+          (mapcar (lambda (ev)
+                    (send-event ev))
+                  (aref (getf mloop :seq)
+                        (getf mloop :pos)))))
        (match type
          (:snd_seq_event_clock
           (send-event event))))
@@ -229,6 +244,7 @@
         (store-gesture event mloop)))))
 
 (defun run-loop-stack ()
+  ;; (drain-channel *clock-ochan*)
   (loop for event = (pri-alt ((? *clock-ochan* ev) ev)
                              ((? *reader-ochan* ev) ev))
      do
