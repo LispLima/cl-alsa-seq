@@ -131,7 +131,6 @@
     (setf off (* 96 (round songpos 96)))
     (loop for i from off to (- songpos 1)
        do
-         (print (- i off))
          (mapcar #'send-event
                  (aref (getf mloop :seq)
                        (- i off))))))
