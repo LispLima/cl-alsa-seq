@@ -215,10 +215,7 @@
           (mapcar (lambda (ev)
                     (send-event ev))
                   (aref (getf mloop :seq)
-                        (getf mloop :pos)))))
-       (match type
-         (:snd_seq_event_clock
-          (send-event event))))
+                        (getf mloop :pos))))))
       ((plist :event-type (guard type
                                  (or (equal type :microtick)
                                      (equal type :snd_seq_event_clock))))
@@ -248,6 +245,9 @@
   (loop for event = (pri-alt ((? *clock-ochan* ev) ev)
                              ((? *reader-ochan* ev) ev))
      do
+       (match event
+         ((plist :event-type :snd_seq_event_clock)
+          (send-event event)))
        (loop for mloop in *loop-stack*
           do
             (match (list event mloop)
