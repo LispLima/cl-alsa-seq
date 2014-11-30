@@ -17,6 +17,9 @@
            :send-ctrl
            :send-note
            :recv
+           :velocity
+           :note
+           :channel
            ))
 
 

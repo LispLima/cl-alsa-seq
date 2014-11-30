@@ -256,7 +256,9 @@
   (loop for event = (pri-alt ((? *clock-ochan* ev) ev)
                              ((? *reader-ochan* ev) ev))
      do
-       (match event
+       (macromatch event
+         (if-gesture
+           (send-event event))
          ((plist :event-type :snd_seq_event_clock)
           (if *send-clock* (send-event event))))
        (loop for idx below (length *loop-stack*)
