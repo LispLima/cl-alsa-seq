@@ -20,6 +20,7 @@
            :velocity
            :note
            :channel
+           :param
            ))
 
 

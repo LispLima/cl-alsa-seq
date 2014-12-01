@@ -71,11 +71,12 @@
     "optional master clock"
     (multiple-value-bind (semiquavers rem)
         (floor songpos 24)
-      (assert (= 0 rem))
+      ;; (assert (= 0 rem))
       semiquavers
       ;; (print master-slave)
       ;; (print ppqn)
-      ;; (print semiquavers)
+      (if (= 0 rem)
+          (print semiquavers))
       )
     (match (list ticker-state master-slave)
       ((list :stopped _)
@@ -95,7 +96,8 @@
           (setf ticker-state :stopped))
          ((property :EVENT-TYPE :SND_SEQ_EVENT_CLOCK)
           (match ppqn
-            (24 (! tick-chan (ev-tick songpos)))
+            (24 (! tick-chan (ev-tick songpos))
+                (incf songpos 4))
             (96 (hires-tick tick-chan (measure-tick-time))))))))))
 
 (defvar *clock-thread* nil)

@@ -8,7 +8,7 @@
    :SND_SEQ_EVENT_TUNE_REQUEST nil
    :SND_SEQ_EVENT_CLIENT_START '(:struct snd_seq_addr_t)
    :SND_SEQ_EVENT_USR0 nil
-   :SND_SEQ_EVENT_SYSEX '(:struct ext)
+   :SND_SEQ_EVENT_SYSEX '(:struct snd_seq_ev_ext_t)
    :SND_SEQ_EVENT_USR_VAR0 nil))
 
 (defun snd-seq-condition (key val)
