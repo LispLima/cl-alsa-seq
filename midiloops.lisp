@@ -90,34 +90,39 @@
 (defun jazz-metro ()
   (nth (+ 1 +n-loops+) *loop-stack*))
 
-(defun ev-loop-push-extend (loop-id)
-  (list :EVENT-TYPE :LOOP-EXTEND
-        :LOOP-ID loop-id))
+(let ((active-loop 1))
 
-(defun ev-loop-overdub (loop-id)
-  (list :EVENT-TYPE :LOOP-OVERDUB
-        :LOOP-ID loop-id))
+  (defun active-loop (n)
+    (setf active-loop n))
 
-(defun ev-loop-continue (loop-id)
-  (list :EVENT-TYPE :LOOP-CONTINUE
-        :LOOP-ID loop-id))
+  (defun ev-loop-push-extend (&optional (loop-id active-loop))
+    (list :EVENT-TYPE :LOOP-EXTEND
+          :LOOP-ID loop-id))
 
-(defun ev-loop-play (loop-id)
-  (list :EVENT-TYPE :LOOP-PLAY
-        :LOOP-ID loop-id))
+  (defun ev-loop-overdub (&optional (loop-id active-loop))
+    (list :EVENT-TYPE :LOOP-OVERDUB
+          :LOOP-ID loop-id))
 
-(defun ev-loop-stop (loop-id)
-  (list :EVENT-TYPE :LOOP-STOP
-        :LOOP-ID loop-id))
+  (defun ev-loop-continue (&optional (loop-id active-loop))
+    (list :EVENT-TYPE :LOOP-CONTINUE
+          :LOOP-ID loop-id))
 
-(defun ev-loop-erase (loop-id)
-  (list :EVENT-TYPE :LOOP-ERASE
-        :LOOP-ID loop-id))
+  (defun ev-loop-play (&optional (loop-id active-loop))
+    (list :EVENT-TYPE :LOOP-PLAY
+          :LOOP-ID loop-id))
 
-(defun ev-loop-cycle (loop-id)
-  "This is the typical create, define-endpoint, overdub cycle"
-  (list :EVENT-TYPE :LOOP-CYCLE
-        :LOOP-ID loop-id))
+  (defun ev-loop-stop (&optional (loop-id active-loop))
+    (list :EVENT-TYPE :LOOP-STOP
+          :LOOP-ID loop-id))
+
+  (defun ev-loop-erase (&optional (loop-id active-loop))
+    (list :EVENT-TYPE :LOOP-ERASE
+          :LOOP-ID loop-id))
+
+  (defun ev-loop-cycle (&optional (loop-id active-loop))
+    "This is the typical create, define-endpoint, overdub cycle"
+    (list :EVENT-TYPE :LOOP-CYCLE
+          :LOOP-ID loop-id)))
 
 (defun loop-overdub (mloop)
   (setf (getf mloop :rec) :overdub))
@@ -153,6 +158,7 @@
           0)))
 
 (defun loop-cycle (mloop)
+  (print mloop)
   (symbol-macrolet ((play (getf mloop :play))
                     (rec (getf mloop :rec)))
     (match mloop

@@ -75,8 +75,8 @@
       semiquavers
       ;; (print master-slave)
       ;; (print ppqn)
-      (if (= 0 rem)
-          (print semiquavers))
+      ;; (if (= 0 rem)
+      ;;     (print semiquavers))
       )
     (match (list ticker-state master-slave)
       ((list :stopped _)
