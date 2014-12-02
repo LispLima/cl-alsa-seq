@@ -131,10 +131,13 @@
 (defun loop-overwrite (mloop)
   (setf (getf mloop :rec) :overwrite))
 
+(defun nearest-beat (songpos)
+  (* 96 (round songpos 96)))
+
 (defun loop-play (mloop songpos)
   (setf (getf mloop :play) :repeat)
   (symbol-macrolet ((off (getf mloop :off)))
-    (setf off (* 96 (round songpos 96)))
+    (setf off (nearest-beat songpos))
     (loop for i from off to (- songpos 1)
        do
          (mapcar #'send-event
@@ -157,8 +160,7 @@
        do (setf (aref seq i) nil))
     (setf (fill-pointer seq)
           0)))
-
-(defun loop-cycle (mloop)
+(defun loop-cycle (mloop songpos)
   (symbol-macrolet ((play (getf mloop :play))
                     (rec (getf mloop :rec)))
     (match mloop
@@ -166,7 +168,8 @@
               :seq (guard seq
                           (= 0 (fill-pointer seq))))
        (setf play :push-extend)
-       (setf rec :overwrite))
+       (setf rec :overwrite)
+       (setf (getf mloop :off) (nearest-beat songpos)))
       ((plist :play :push-extend
               :rec :overwrite)
        (setf play :repeat)
@@ -214,46 +217,50 @@
                 nil)))
        ))))
 
-(let ((last-songpos 0))
-  (defun dispatch-event (event mloop)
-    (macromatch event
-      ((plist :event-type (guard type
-                                 (or (equal type :microtick)
-                                     (equal type :snd_seq_event_clock)))
-              :songpos songpos)
-       (match mloop
-         ((plist :play (not nil)
-                 :off (guard off (<= off songpos)))
-          (mapcar (lambda (ev);;read out event list for sequencer bin
-                    (send-event ev))
-                  (aref (getf mloop :seq)
-                        (getf mloop :pos)))))
-       (seek-to mloop songpos)
-       (setf last-songpos songpos))
-      ((plist :event-type (guard type
-                                 (or (equal type :microtick)
-                                     (equal type :snd_seq_event_clock))))
-       (error "loop received clock data with no songpos"))
-      ((plist :event-type :loop-push-extend)
-       (loop-push-extend mloop))
-      ((plist :event-type :loop-overdub)
-       (loop-overdub mloop))
-      ((plist :event-type :loop-overwrite)
-       (loop-overwrite mloop))
-      ((plist :event-type :loop-continue)
-       (loop-continue mloop))
-      ((plist :event-type :loop-play)
-       (loop-play mloop last-songpos))
-      ((plist :event-type :SND_SEQ_EVENT_START)
-       (loop-play mloop 0))
-      ((plist :event-type :loop-stop)
-       (loop-stop mloop))
-      ((plist :event-type :loop-erase)
-       (loop-erase mloop))
-      ((plist :event-type :loop-cycle)
-       (loop-cycle mloop))
-      (if-gesture
-        (store-gesture event mloop)))))
+(defun read-gestures (mloop songpos)
+  (match mloop
+    ((plist :play (not nil)
+            :off (guard off (<= off songpos)))
+     (mapcar (lambda (ev);;read out event list for sequencer bin
+               (send-event ev))
+             (aref (getf mloop :seq)
+                   (getf mloop :pos))))))
+
+(defvar *last-songpos* 0)
+(defun dispatch-event (event mloop)
+  (macromatch event
+    ((plist :event-type (guard type
+                               (or (equal type :microtick)
+                                   (equal type :snd_seq_event_clock)))
+            :songpos songpos)
+     (setf *last-songpos* (- songpos 1))
+     (seek-to mloop songpos)
+     ;; (read-gestures mloop songpos)
+     )
+    ((plist :event-type (guard type
+                               (or (equal type :microtick)
+                                   (equal type :snd_seq_event_clock))))
+     (error "loop received clock data with no songpos"))
+    ((plist :event-type :loop-push-extend)
+     (loop-push-extend mloop))
+    ((plist :event-type :loop-overdub)
+     (loop-overdub mloop))
+    ((plist :event-type :loop-overwrite)
+     (loop-overwrite mloop))
+    ((plist :event-type :loop-continue)
+     (loop-continue mloop))
+    ((plist :event-type :loop-play)
+     (loop-play mloop *last-songpos*))
+    ;; ((plist :event-type :SND_SEQ_EVENT_START)
+    ;;  (loop-play mloop 0))
+    ((plist :event-type :loop-stop)
+     (loop-stop mloop))
+    ((plist :event-type :loop-erase)
+     (loop-erase mloop))
+    ((plist :event-type :loop-cycle)
+     (loop-cycle mloop *last-songpos*))
+    (if-gesture
+      (store-gesture event mloop))))
 
 (defvar *send-clock* nil)
 
