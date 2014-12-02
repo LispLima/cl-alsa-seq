@@ -2,7 +2,7 @@
 
 (defconstant +n-loops+ 4)
 (defconstant +default-loop-res+ 96)
-(defconstant +default-loop-len+ 8)
+(defconstant +default-loop-len+ 800)
 
 (defun null-trigger ()
   (lambda (event)
@@ -82,7 +82,8 @@
                                   ;; (:loop-id :jazz-metro ,@(make-jazz-metro 2))
                                   )))
                        (make-array (length looplist)
-                                   :initial-contents looplist)))
+                                   :initial-contents looplist
+                                   :fill-pointer (length looplist))))
 
 (defun simple-metro ()
   (nth +n-loops+ *loop-stack*))
@@ -158,7 +159,6 @@
           0)))
 
 (defun loop-cycle (mloop)
-  (print mloop)
   (symbol-macrolet ((play (getf mloop :play))
                     (rec (getf mloop :rec)))
     (match mloop
@@ -176,7 +176,8 @@
        (setf rec nil))
       ((plist :play (or :push-extend
                         nil))
-       (setf play :repeat)))))
+       (setf play :repeat))))
+    (print mloop))
 
 (defun store-gesture (event mloop)
   (match mloop
@@ -194,18 +195,18 @@
             :seq seq)
      (symbol-macrolet ((pos (getf mloop :pos))
                        (fill (fill-pointer seq)))
-       (if (< fill 1)
-           (return-from seek-to))
-       (if (> songpos off)
+       (if (>= songpos off)
            (match play
              (:push-extend
               (setf pos (- songpos off))
-              (if (> songpos (+ off fill))
-                  (setf fill pos)))
+              (if (>= songpos (+ off fill))
+                  (setf fill (+ pos 1))))
              (:repeat
-              (setf pos
-                    (nth-value 1 (floor (- songpos off)
-                                        fill)))))
+                 (if (< fill 1)
+                     (return-from seek-to))
+               (setf pos
+                     (nth-value 1 (floor (- songpos off)
+                                         fill)))))
            (setf pos 0))
        (match rec
          (:overwrite
@@ -220,15 +221,15 @@
                                  (or (equal type :microtick)
                                      (equal type :snd_seq_event_clock)))
               :songpos songpos)
-       (seek-to mloop songpos)
-       (setf last-songpos songpos)
        (match mloop
          ((plist :play (not nil)
                  :off (guard off (<= off songpos)))
-          (mapcar (lambda (ev)
+          (mapcar (lambda (ev);;read out event list for sequencer bin
                     (send-event ev))
                   (aref (getf mloop :seq)
-                        (getf mloop :pos))))))
+                        (getf mloop :pos)))))
+       (seek-to mloop songpos)
+       (setf last-songpos songpos))
       ((plist :event-type (guard type
                                  (or (equal type :microtick)
                                      (equal type :snd_seq_event_clock))))
@@ -263,9 +264,9 @@
      do
        (macromatch event
          (if-gesture
-           (send-event event))
+           (send-event event));;echo gestures
          ((plist :event-type :snd_seq_event_clock)
-          (if *send-clock* (send-event event))))
+          (if *send-clock* (send-event event))));;echo clock
        (loop for idx below (length *loop-stack*)
           do
             (match (list event (aref *loop-stack* idx))
