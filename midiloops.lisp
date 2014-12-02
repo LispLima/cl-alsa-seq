@@ -131,6 +131,9 @@
 (defun loop-overwrite (mloop)
   (setf (getf mloop :rec) :overwrite))
 
+(defun loop-norec (mloop)
+  (setf (getf mloop :rec) nil))
+
 (defun nearest-beat (songpos)
   (* 96 (round songpos 96)))
 
@@ -168,10 +171,10 @@
               :seq (guard seq
                           (= 0 (fill-pointer seq))))
        (setf play :push-extend)
-       (setf rec :overwrite)
+       (setf rec :overdub)
        (setf (getf mloop :off) (nearest-beat songpos)))
       ((plist :play :push-extend
-              :rec :overwrite)
+              :rec :overdub)
        (setf play :repeat)
        (setf rec nil))
       ((plist :play :repeat)
@@ -186,7 +189,7 @@
   (match mloop
     ((plist :play _
             :rec  (not nil))
-     (let ((seq (getf mloop :seq)))
+     (symbol-macrolet ((seq (getf mloop :seq)))
        (push event (aref seq
                          (getf mloop :pos)))))))
 
@@ -233,9 +236,9 @@
                                (or (equal type :microtick)
                                    (equal type :snd_seq_event_clock)))
             :songpos songpos)
-     (setf *last-songpos* (- songpos 1))
+     (read-gestures mloop *last-songpos*)
      (seek-to mloop songpos)
-     ;; (read-gestures mloop songpos)
+     (setf *last-songpos* songpos)
      )
     ((plist :event-type (guard type
                                (or (equal type :microtick)
@@ -299,6 +302,7 @@
                                              (equal event-type
                                                     :loop-cycle))))
     ,@body))
+
 (defun test-single-loop ()
   (let* ((myloop (aref *loop-stack* 0))
          (seq (getf myloop :seq)))

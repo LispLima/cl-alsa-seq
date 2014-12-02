@@ -29,6 +29,8 @@
   (interactive)
   (slime-interactive-eval "(mloops::active-loop 3)"))
 
+(global-unset-key (kbd "M-m"))
+
 (global-set-key (kbd "M-m M-m") 'ev-stop)
 
 (global-set-key (kbd "M-m M-k") 'ev-continue)
