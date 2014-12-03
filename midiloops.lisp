@@ -169,7 +169,10 @@
 (defun loop-continue (mloop)
   (setf (getf mloop :play) :repeat))
 
-(defun loop-push-extend (mloop)
+(defun loop-push-extend (mloop songpos)
+  (match mloop
+    ((plist :play nil)
+     (setf (getf mloop :pos) (nearest-beat songpos))))
   (setf (getf mloop :play) :push-extend)
   (print mloop))
 
@@ -266,7 +269,7 @@
                                    (equal type :snd_seq_event_clock))))
      (error "loop received clock data with no songpos"))
     ((plist :event-type :loop-push-extend)
-     (loop-push-extend mloop))
+     (loop-push-extend mloop *last-songpos*))
     ((plist :event-type :loop-overdub)
      (loop-overdub mloop))
     ((plist :event-type :loop-overwrite)

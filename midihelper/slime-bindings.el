@@ -28,6 +28,9 @@
 (defun active3 ()
   (interactive)
   (slime-interactive-eval "(mloops::active-loop 3)"))
+(defun activen ()
+  (interactive)
+  (slime-interactive-eval "(mloops::active-loop 3)"))
 
 (global-unset-key (kbd "M-m"))
 
@@ -113,3 +116,11 @@
 (global-set-key (kbd "M-m o") 'loop-overdub)
 (global-set-key (kbd "M-m l") 'loop-play-push-extend)
 (global-set-key (kbd "M-m k") 'loop-play)
+
+
+;; (define-derived-mode
+;; (ido
+;; (smex
+;; smart parens
+;; cider mode
+;; redshank refactoring library
