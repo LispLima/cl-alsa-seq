@@ -97,11 +97,15 @@
     (setf active-loop n))
 
   (defun ev-loop-push-extend (&optional (loop-id active-loop))
-    (list :EVENT-TYPE :LOOP-EXTEND
+    (list :EVENT-TYPE :LOOP-PUSH-EXTEND
           :LOOP-ID loop-id))
 
   (defun ev-loop-overdub (&optional (loop-id active-loop))
     (list :EVENT-TYPE :LOOP-OVERDUB
+          :LOOP-ID loop-id))
+
+  (defun ev-loop-overwrite (&optional (loop-id active-loop))
+    (list :EVENT-TYPE :LOOP-OVERWRITE
           :LOOP-ID loop-id))
 
   (defun ev-loop-continue (&optional (loop-id active-loop))
@@ -126,10 +130,24 @@
           :LOOP-ID loop-id)))
 
 (defun loop-overdub (mloop)
-  (setf (getf mloop :rec) :overdub))
+  (symbol-macrolet ((rec (getf mloop :rec)))
+    (setf rec
+          (match rec
+            (:overdub
+             nil)
+             ((or :overwrite nil)
+              :overdub))))
+  (print mloop))
 
 (defun loop-overwrite (mloop)
-  (setf (getf mloop :rec) :overwrite))
+  (symbol-macrolet ((rec (getf mloop :rec)))
+    (setf rec
+          (match rec
+            (:overwrite
+             nil)
+             ((or :overdub nil)
+              :overwrite))))
+  (print mloop))
 
 (defun loop-norec (mloop)
   (setf (getf mloop :rec) nil))
@@ -145,17 +163,20 @@
        do
          (mapcar #'send-event
                  (aref (getf mloop :seq)
-                       (- i off))))))
+                       (- i off)))))
+  (print mloop))
 
 (defun loop-continue (mloop)
   (setf (getf mloop :play) :repeat))
 
 (defun loop-push-extend (mloop)
-  (setf (getf mloop :play) :push-extend))
+  (setf (getf mloop :play) :push-extend)
+  (print mloop))
 
 (defun loop-stop (mloop)
   (setf (getf mloop :play) nil)
-  (setf (getf mloop :rec) nil))
+  (setf (getf mloop :rec) nil)
+  (print mloop))
 
 (defun loop-erase (mloop)
   (let ((seq (getf mloop :seq)))
@@ -293,6 +314,8 @@
                                                     :push-extend)
                                              (equal event-type
                                                     :loop-overdub)
+                                             (equal event-type
+                                                    :loop-overwrite)
                                              (equal event-type
                                                     :loop-play)
                                              (equal event-type

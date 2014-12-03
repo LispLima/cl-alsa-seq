@@ -50,7 +50,7 @@
   (interactive)
   (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (midihelper:ev-noteon 0 43 127))"))
 
-(global-set-key (kbd "M-n") 'note0)
+(global-set-key (kbd "M-n") 'note3)
 
 (global-set-key (kbd "M-j") 'notekick)
 
@@ -84,3 +84,32 @@
   (interactive)
   (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (ev-loop-cycle))"))
 (global-set-key (kbd "M-SPC") 'midi-loop-cycle)
+
+
+(defun loop-play ()
+  (interactive)
+  (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (midiloops::ev-loop-play))"))
+(defun loop-play-push-extend ()
+  (interactive)
+  (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (midiloops::ev-loop-push-extend))"))
+(defun loop-stop ()
+  (interactive)
+  (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (midiloops::ev-loop-stop))"))
+(defun loop-erase ()
+  (interactive)
+  (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (midiloops::ev-loop-erase))"))
+(defun loop-overwrite ()
+  (interactive)
+  (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (midiloops::ev-loop-overwrite))"))
+(defun loop-overdub ()
+  (interactive)
+  (slime-interactive-eval "(calispel:! midihelper:*reader-ochan* (midiloops::ev-loop-overdub))"))
+
+(global-set-key (kbd "M-m m") 'loop-stop)
+(global-set-key (kbd "M-m k") 'loop-continue)
+(global-set-key (kbd "M-m l") 'loop-play)
+(global-set-key (kbd "M-m d") 'loop-erase)
+(global-set-key (kbd "M-m O") 'loop-overwrite)
+(global-set-key (kbd "M-m o") 'loop-overdub)
+(global-set-key (kbd "M-m l") 'loop-play-push-extend)
+(global-set-key (kbd "M-m k") 'loop-play)
