@@ -187,6 +187,7 @@
        do (setf (aref seq i) nil))
     (setf (fill-pointer seq)
           0)))
+
 (defun loop-cycle (mloop songpos)
   (symbol-macrolet ((play (getf mloop :play))
                     (rec (getf mloop :rec)))
@@ -200,6 +201,8 @@
       ((plist :play :push-extend
               :rec :overdub)
        (setf play :repeat)
+       (setf (fill-pointer (getf mloop :seq))
+             (nearest-beat (- songpos (getf mloop :off))))
        (setf rec nil))
       ((plist :play :repeat)
        (setf play nil)
