@@ -250,8 +250,8 @@
 (defun read-gestures (mloop songpos)
   (match mloop
     ((plist :play (not nil)
-            :off (guard off (<= off songpos)))
-     (mapcar (lambda (ev);;read out event list for sequencer bin
+            :off (guard off (>= songpos off)))
+     (mapcar (lambda (ev)
                (send-event ev))
              (aref (getf mloop :seq)
                    (getf mloop :pos))))))
@@ -263,10 +263,8 @@
                                (or (equal type :microtick)
                                    (equal type :snd_seq_event_clock)))
             :songpos songpos)
-     (read-gestures mloop *last-songpos*)
      (seek-to mloop songpos)
-     (setf *last-songpos* songpos)
-     )
+     (read-gestures mloop songpos))
     ((plist :event-type (guard type
                                (or (equal type :microtick)
                                    (equal type :snd_seq_event_clock))))
@@ -300,6 +298,11 @@
                              ((? *reader-ochan* ev) ev))
      do
        (macromatch event
+         ((plist :event-type (guard type
+                                    (or (equal type :microtick)
+                                        (equal type :snd_seq_event_clock)))
+                 :songpos songpos)
+          (setf *last-songpos* songpos))
          (if-gesture
            (send-event event));;echo gestures
          ((plist :event-type :snd_seq_event_clock)
