@@ -338,3 +338,13 @@
     (loop-erase myloop)
     (setf (fill-pointer seq) (* 96 4))
     (loop-overdub myloop)))
+
+(defvar *midiloops-thread* nil)
+
+(defun start-midiloops ()
+  (start-midihelper)
+  (setf *midiloops-thread* (bt:make-thread #'run-loop-stack :name "loopstack")))
+
+(defun stop-midiloops ()
+  (ignore-errors (bt:destroy-thread *midiloops-thread*))
+  (stop-midihelper))
