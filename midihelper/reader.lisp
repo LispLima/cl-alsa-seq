@@ -54,17 +54,21 @@
      ,@(mapcar #'macroexpand
               clauses)))
 
-(defun midi-input (seq clock-ichan reader-ochan)
+(defun midi-input (seq clock-ichan reader-ochan reader-map)
   (let ((mess (recv seq)))
     (macromatch mess
       (if-gesture
-        (! reader-ochan mess))
+        (mapcar
+         (lambda (mapped-mess)
+           (! reader-ochan mapped-mess))
+         (funcall reader-map
+                  (list mess))))
       (if-clock
         (! clock-ichan mess)))))
 
 (defvar *reader-thread* nil)
 
-(defun start-reader (clock-ichan)
+(defun start-reader (clock-ichan &optional (reader-map #'identity))
   (assert (null *reader-thread*))
   (setf *reader-thread*
         (bt:make-thread (lambda ()
@@ -73,9 +77,10 @@
                                (handler-case
                                    (with-seq (seq :name "CL")
                                      (open-port "in" seq :input)
-                                     (loop (midi-input seq
+                                    (loop (midi-input seq
                                                        clock-ichan
-                                                       *reader-ochan*)))
+                                                       *reader-ochan*
+                                                       reader-map)))
                                  (stop-thread ()))
                             (setf *reader-thread* nil)))
                         :name "simple-midi-reader")))

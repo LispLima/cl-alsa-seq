@@ -93,6 +93,10 @@
 
 (let ((active-loop 1))
 
+  (defun ev-active-loop (loop-id)
+    (list :EVENT-TYPE :ACTIVE-LOOP
+          :LOOP-ID loop-id))
+
   (defun active-loop (n)
     (setf active-loop n))
 
@@ -269,6 +273,9 @@
                                (or (equal type :microtick)
                                    (equal type :snd_seq_event_clock))))
      (error "loop received clock data with no songpos"))
+    ((plist :event-type :active-loop
+            :loop-id loop-id)
+     (active-loop loop-id))
     ((plist :event-type :loop-push-extend)
      (loop-push-extend mloop *last-songpos*))
     ((plist :event-type :loop-overdub)
@@ -346,6 +353,7 @@
 
 (defun start-midiloops ()
   (start-midihelper)
+  (sleep 1)
   (setf *midiloops-thread* (bt:make-thread #'run-loop-stack :name "loopstack")))
 
 (defun stop-midiloops ()
