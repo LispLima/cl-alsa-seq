@@ -18,6 +18,7 @@
    :play nil;; nil :push-extend :repeat
    :rec nil;; nil :overwrite or :overdub
    :res +default-loop-res+ ;; 96 or 24
+   :trans #'identity
    ;; :ichan (make-nonblock-buf-channel)
    ;; :ochan (make-nonblock-buf-channel)
    ))
@@ -158,7 +159,7 @@
 
 (defun nearest-beat (songpos)
   (* 96 (round songpos 96)))
-
+s
 (defun loop-play (mloop songpos)
   (setf (getf mloop :play) :repeat)
   (symbol-macrolet ((off (getf mloop :off)))
@@ -248,8 +249,7 @@
        (match rec
          (:overwrite
           (setf (aref seq pos)
-                nil)))
-       ))))
+                nil)))))))
 
 (defun read-gestures (mloop songpos)
   (match mloop
@@ -257,7 +257,8 @@
             :off (guard off (>= songpos off)))
      (mapcar (lambda (ev)
                (send-event ev))
-             (aref (getf mloop :seq)
+             (aref (funcall (getf mloop :trans)
+                            (getf mloop :seq))
                    (getf mloop :pos))))))
 
 (defvar *last-songpos* 0)
