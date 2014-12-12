@@ -4,26 +4,7 @@
 (defvar **seq nil);;pointer to sequence struct (for memory deallocation)
 (defvar *my-ports* nil)
 
-(defun start-writer ()
-  (assert (null **seq))
-  (assert (null *seq*))
-  (assert (null *my-ports*))
-  (setf **seq (open-seq "CL"))
-  (setf *seq* (mem-ref **seq :pointer))
-  (setf *my-ports*
-        (loop for i from 1 to 1
-           collect (open-port (format nil "port~A" i)
-                              *seq*
-                              :output))))
-
-(defun stop-writer ()
-  (assert **seq)
-  (close-seq **seq)
-  (setf *seq* nil)
-  (setf **seq nil)
-  (setf *my-ports* nil))
-
-(defun send-event (description &optional (port (car *my-ports*)) (seq *seq*))
+(defun %send-event (description &optional (port (car *my-ports*)) (seq *seq*))
   (match description
     ((plist :EVENT-TYPE (guard event-type (or (equal event-type :snd_seq_event_noteoff)
                                               (equal event-type :snd_seq_event_noteon)))
@@ -60,33 +41,36 @@
      (send-queue-ctrl 0 event-type seq port))
      (_ (format t "unknown event ~S~%" description))))
 
-(defun ev-noteon (channel note velocity)
-  (list :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-        :EVENT-DATA `(VELOCITY ,velocity NOTE ,note CHANNEL ,channel)))
+(defun start-writer ()
+  (assert (null **seq))
+  (assert (null *seq*))
+  (assert (null *my-ports*))
+  (setf **seq (open-seq "CL"))
+  (setf *seq* (mem-ref **seq :pointer))
+  (setf *my-ports*
+        (loop for i from 1 to 1
+           collect (open-port (format nil "port~A" i)
+                              *seq*
+                              :output))))
 
-(defun ev-noteoff (channel note velocity)
-  (list :EVENT-TYPE :SND_SEQ_EVENT_NOTEOFF
-        :EVENT-DATA `(VELOCITY ,velocity NOTE ,note CHANNEL ,channel)))
+(defun stop-writer ()
+  (assert **seq)
+  (close-seq **seq)
+  (setf *seq* nil)
+  (setf **seq nil)
+  (setf *my-ports* nil))
 
-(defun ev-tick (&optional songpos)
-  `(:EVENT-TYPE :SND_SEQ_EVENT_CLOCK ,@(if songpos
-                                           (list :songpos
-                                                 songpos))))
+(defvar *writer-thread* nil)
+(defvar *writer-ichan* (make-nonblock-buf-channel))
 
-(defun ev-microtick (&optional songpos)
-  `(:EVENT-TYPE :MICROTICK ,@(if songpos
-                                 (list :songpos
-                                       songpos))))
+(defun start-writer-thread ()
+  (assert (null *writer-thread*))
+  (bt:make-thread (lambda ()
+                    (with-seq (thread-seq :direction :output
+                                          :name "CL")
+                      (unwind-protect
+                           (loop (%send-event (? *writer-ichan*) 0 thread-seq)))))
+                  :name "midihelper writer"))
 
-(defun ev-start ()
-  '(:EVENT-TYPE :SND_SEQ_EVENT_START))
-
-(defun ev-stop ()
-  '(:EVENT-TYPE :SND_SEQ_EVENT_STOP))
-
-(defun ev-continue ()
-  '(:EVENT-TYPE :SND_SEQ_EVENT_CONTINUE))
-
-(defun ev-songpos (songpos)
-  (list :EVENT-TYPE :SND_SEQ_EVENT_SONGPOS
-        :EVENT-DATA `(VALUE ,songpos PARAM 0 CHANNEL 0)))
+(defun send-event (event)
+  (! *writer-ichan* event))

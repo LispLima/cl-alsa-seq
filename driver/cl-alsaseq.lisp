@@ -34,7 +34,7 @@
   "close port <port> on alsa sequencer object <seq>"
   (snd_seq_delete_simple_port seq port))
 
-(defmacro! with-seq ((seq &key (name "Common Lisp")) &body body)
+(defmacro! with-seq ((seq &key (direction :duplex) (name "Common Lisp")) &body body)
   "open an alsa sequencer connection <seq>, named <name> with lexical scope in <body>"
   `(let* ((,g!seq (open-seq ,name))
           (,seq (mem-ref ,g!seq :pointer)))

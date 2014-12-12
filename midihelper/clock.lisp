@@ -130,3 +130,34 @@
 (defun stop-clock ()
   (bt:destroy-thread *clock-thread*)
   (setf *clock-thread* nil))
+
+(defun ev-noteon (channel note velocity)
+  (list :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+        :EVENT-DATA `(VELOCITY ,velocity NOTE ,note CHANNEL ,channel)))
+
+(defun ev-noteoff (channel note velocity)
+  (list :EVENT-TYPE :SND_SEQ_EVENT_NOTEOFF
+        :EVENT-DATA `(VELOCITY ,velocity NOTE ,note CHANNEL ,channel)))
+
+(defun ev-tick (&optional songpos)
+  `(:EVENT-TYPE :SND_SEQ_EVENT_CLOCK ,@(if songpos
+                                           (list :songpos
+                                                 songpos))))
+
+(defun ev-microtick (&optional songpos)
+  `(:EVENT-TYPE :MICROTICK ,@(if songpos
+                                 (list :songpos
+                                       songpos))))
+
+(defun ev-start ()
+  '(:EVENT-TYPE :SND_SEQ_EVENT_START))
+
+(defun ev-stop ()
+  '(:EVENT-TYPE :SND_SEQ_EVENT_STOP))
+
+(defun ev-continue ()
+  '(:EVENT-TYPE :SND_SEQ_EVENT_CONTINUE))
+
+(defun ev-songpos (songpos)
+  (list :EVENT-TYPE :SND_SEQ_EVENT_SONGPOS
+        :EVENT-DATA `(VALUE ,songpos PARAM 0 CHANNEL 0)))

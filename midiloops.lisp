@@ -29,10 +29,10 @@
     newloop))
 
 (defparameter *default-tick-ev*
-  (list (ev-noteon 0 46 127)))
+  (list (ev-noteon 0 43 127)))
 
 (defparameter *default-tock-ev*
-  (list (ev-noteon 0 46 67)))
+  (list (ev-noteon 0 43 67)))
 
 (defun make-simple-metro (bars
                           &rest rest
@@ -159,7 +159,7 @@
 
 (defun nearest-beat (songpos)
   (* 96 (round songpos 96)))
-s
+
 (defun loop-play (mloop songpos)
   (setf (getf mloop :play) :repeat)
   (symbol-macrolet ((off (getf mloop :off)))
