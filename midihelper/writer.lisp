@@ -65,16 +65,17 @@
 
 (defun start-writer-thread ()
   (assert (null *writer-thread*))
-  (bt:make-thread (lambda ()
-                    (with-seq (thread-seq :direction :output
-                                          :name "CL")
-                      (unwind-protect
-                           (handler-case
-                               (loop (%send-event (? *writer-ichan*)
-                                                  0 thread-seq))
-                             (stop-thread ()))
-                        (setf *reader-thread* nil))))
-                  :name "midihelper writer"))
+  (setf *writer-thread*
+        (bt:make-thread (lambda ()
+                          (with-seq (thread-seq :direction :output
+                                                :name "CL")
+                            (unwind-protect
+                                 (handler-case
+                                     (loop (%send-event (? *writer-ichan*)
+                                                        0 thread-seq))
+                                   (stop-thread ()))
+                              (setf *writer-thread* nil))))
+                        :name "midihelper writer")))
 
 (defun stop-writer-thread ()
   (bt:interrupt-thread
