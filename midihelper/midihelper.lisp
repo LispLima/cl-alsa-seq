@@ -17,7 +17,7 @@
   (drain-channel *clock-ctrl-chan*)
   (start-reader *clock-ctrl-chan* reader-map)
   (start-clock *clock-ctrl-chan* master-slave ppqn)
-  (start-writer))
+  (start-writer-thread))
 
 (defun check-midihelper ()
   (alexandria:doplist
@@ -34,7 +34,7 @@
       (setf *reader-thread* nil)))
 
   (if *seq*
-      (stop-writer))
+      (stop-writer-thread))
   (handler-case
       (if *clock-thread*
           (stop-clock))

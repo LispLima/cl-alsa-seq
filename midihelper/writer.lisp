@@ -69,8 +69,17 @@
                     (with-seq (thread-seq :direction :output
                                           :name "CL")
                       (unwind-protect
-                           (loop (%send-event (? *writer-ichan*) 0 thread-seq)))))
+                           (handler-case
+                               (loop (%send-event (? *writer-ichan*)
+                                                  0 thread-seq))
+                             (stop-thread ()))
+                        (setf *reader-thread* nil))))
                   :name "midihelper writer"))
+
+(defun stop-writer-thread ()
+  (bt:interrupt-thread
+   *writer-thread* (lambda ()
+                     (error 'stop-thread))))
 
 (defun send-event (event)
   (! *writer-ichan* event))
