@@ -27,16 +27,10 @@
 
 (defun stop-midihelper ()
   (check-midihelper)
-  (handler-case
-      (if *reader-thread*
-          (stop-reader))
-    (SB-THREAD:INTERRUPT-THREAD-ERROR ()
-      (setf *reader-thread* nil)))
-
-  (stop-writer-thread)
-  (handler-case
-      (if *clock-thread*
-          (stop-clock))
-    (SB-THREAD:INTERRUPT-THREAD-ERROR ()
-      (setf *clock-thread* nil)))
+  (ignore-errors (stop-reader))
+  (setf *reader-thread* nil)
+  (ignore-errors (stop-writer-thread))
+  (setf *writer-thread* nil)
+  (ignore-errors (stop-clock))
+  (setf *clock-thread* nil)
   (inspect-midihelper))
