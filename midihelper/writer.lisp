@@ -67,13 +67,14 @@
   (assert (null *writer-thread*))
   (setf *writer-thread*
         (bt:make-thread (lambda ()
-                          (with-seq (thread-seq :direction :output
-                                                :name "CL")
+                          (with-seq (thread-seq :name "CL")
                             (unwind-protect
-                                 (handler-case
-                                     (loop (%send-event (? *writer-ichan*)
-                                                        0 thread-seq))
-                                   (stop-thread ()))
+                                 (progn
+                                   (open-port "port0" thread-seq :output)
+                                   (handler-case
+                                       (loop (%send-event (? *writer-ichan*)
+                                                          0 thread-seq))
+                                     (stop-thread ())))
                               (setf *writer-thread* nil))))
                         :name "midihelper writer")))
 

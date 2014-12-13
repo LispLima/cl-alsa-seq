@@ -2,7 +2,7 @@
 (defun inspect-midihelper ()
   (list '*reader-thread* *reader-thread*
         '*clock-thread* *clock-thread*
-        '*seq* *seq*))
+        '*writer-thread* *writer-thread*))
 
 (defun start-midihelper (&optional
                            (master-slave :master)
@@ -33,8 +33,7 @@
     (SB-THREAD:INTERRUPT-THREAD-ERROR ()
       (setf *reader-thread* nil)))
 
-  (if *seq*
-      (stop-writer-thread))
+  (stop-writer-thread)
   (handler-case
       (if *clock-thread*
           (stop-clock))
