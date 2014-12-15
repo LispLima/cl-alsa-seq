@@ -72,8 +72,11 @@
                                  (progn
                                    (open-port "port0" thread-seq :output)
                                    (handler-case
-                                       (loop (%send-event (? *writer-ichan*)
-                                                          0 thread-seq))
+                                       (loop
+                                          (restart-case
+                                              (%send-event (? *writer-ichan*)
+                                                           0 thread-seq)
+                                            (carry-on-writing ())))
                                      (stop-thread ())))
                               (setf *writer-thread* nil))))
                         :name "midihelper writer")))

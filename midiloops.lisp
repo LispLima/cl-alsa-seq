@@ -242,9 +242,9 @@
              (:repeat
                  (if (< fill 1)
                      (return-from seek-to))
-               (setf pos
-                     (nth-value 1 (floor (- songpos off)
-                                         fill)))))
+                 (setf pos
+                       (nth-value 1 (floor (- songpos off)
+                                           fill)))))
            (setf pos 0))
        (match rec
          (:overwrite
@@ -302,29 +302,28 @@
 
 (defun run-loop-stack ()
   ;; (drain-channel *clock-ochan*)
-  (loop for event = (pri-alt ((? *clock-ochan* ev) ev)
-                             ((? *reader-ochan* ev) ev))
-     do
-       (macromatch event
-         ((plist :event-type (guard type
-                                    (or (equal type :microtick)
-                                        (equal type :snd_seq_event_clock)))
-                 :songpos songpos)
-          (setf *last-songpos* songpos))
-         (if-gesture
-           (send-event event));;echo gestures
-         ((plist :event-type :snd_seq_event_clock)
-          (if *send-clock* (send-event event))));;echo clock
-       (loop for idx below (length *loop-stack*)
-          do
-            (match (list event (aref *loop-stack* idx))
-              ((or (not (list (plist :loop-id _)
-                              _));;dispatch events with no loop-id info
-                   (list (plist :loop-id (guard ev-loop-id
-                                                (or (equal ev-loop-id :all)
-                                                    (equal ev-loop-id loop-id))))
-                         (plist :loop-id loop-id)));;dispatch events where loop-ids match
-               (dispatch-event event (aref *loop-stack* idx)))))))
+  (let ((event (pri-alt ((? *clock-ochan* ev) ev)
+                        ((? *reader-ochan* ev) ev))))
+    (macromatch event
+      ((plist :event-type (guard type
+                                 (or (equal type :microtick)
+                                     (equal type :snd_seq_event_clock)))
+              :songpos songpos)
+       (setf *last-songpos* songpos))
+      (if-gesture
+        (send-event event));;echo gestures
+      ((plist :event-type :snd_seq_event_clock)
+       (if *send-clock* (send-event event))));;echo clock
+    (loop for idx below (length *loop-stack*)
+       do
+         (match (list event (aref *loop-stack* idx))
+           ((or (not (list (plist :loop-id _)
+                           _));;dispatch events with no loop-id info
+                (list (plist :loop-id (guard ev-loop-id
+                                             (or (equal ev-loop-id :all)
+                                                 (equal ev-loop-id loop-id))))
+                      (plist :loop-id loop-id)));;dispatch events where loop-ids match
+            (dispatch-event event (aref *loop-stack* idx)))))))
 
 (defmacro if-loop-ctrl (&body body)
   `((plist :EVENT-TYPE (guard event-type (or (equal event-type
@@ -355,7 +354,11 @@
 (defun start-midiloops ()
   (start-midihelper)
   (sleep 1)
-  (setf *midiloops-thread* (bt:make-thread #'run-loop-stack :name "loopstack")))
+  (setf *midiloops-thread* (bt:make-thread (lambda ()
+                                             (loop
+                                                (restart-case (run-loop-stack)
+                                                  (carry-on-looping ()))))
+                                           :name "loopstack")))
 
 (defun stop-midiloops ()
   (ignore-errors (bt:destroy-thread *midiloops-thread*))

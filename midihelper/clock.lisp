@@ -124,7 +124,10 @@
   (setf *clock-thread*
         (bt:make-thread
          (lambda ()
-           (loop (ticker *clock-ochan* ctrl-chan master-slave ppqn)))
+           (loop
+              (restart-case
+                  (ticker *clock-ochan* ctrl-chan master-slave ppqn)
+                (carry-on-ticking ()))))
          :name "midihelper clock")))
 
 (defun stop-clock ()
