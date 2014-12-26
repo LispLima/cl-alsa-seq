@@ -4,7 +4,7 @@
 
 (defvar *clock-ochan*  (make-nonblock-buf-channel))
 
-(defvar *tick-time* 0.05)
+(defvar *tick-time* 0.015)
 
 (defun set-master-bpm (bpm)
   (setf *tick-time* (/ (/ 60 24) bpm)))
