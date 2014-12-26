@@ -17,10 +17,7 @@
    :off 0;;loop start time clock microticks
    :play nil;; nil :push-extend :repeat
    :rec nil;; nil :overwrite or :overdub
-   :res +default-loop-res+ ;; 96 or 24
    :trans #'identity
-   ;; :ichan (make-nonblock-buf-channel)
-   ;; :ochan (make-nonblock-buf-channel)
    ))
 
 (defun make-fixed-loop (bars &key (major 4) (minor 4) (res +default-loop-res+))
@@ -157,8 +154,17 @@
 (defun loop-norec (mloop)
   (setf (getf mloop :rec) nil))
 
+(defvar *sync* :beat)
+
 (defun nearest-beat (songpos)
-  (* 96 (round songpos 96)))
+  (let ((loopsync
+             (case *sync*
+               (:beat 96)
+               (:free 1)
+               (:loop1 (max (length (getf (aref *loop-stack* 0)
+                                          :seq))
+                            1)))))
+    (* loopsync (round songpos loopsync))))
 
 (defun loop-play (mloop songpos)
   (setf (getf mloop :play) :repeat)
