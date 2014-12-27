@@ -194,6 +194,7 @@
 
 (defun loop-erase (mloop)
   (let ((seq (getf mloop :seq)))
+    (setf (getf mloop :play) nil)
     (loop for i below (length seq)
        do (setf (aref seq i) nil))
     (setf (fill-pointer seq)
@@ -358,7 +359,7 @@
 (defvar *midiloops-thread* nil)
 
 (defun start-midiloops ()
-  (start-midihelper)
+  (start-midihelper :slave)
   (sleep 1)
   (setf *midiloops-thread* (bt:make-thread (lambda ()
                                              (loop

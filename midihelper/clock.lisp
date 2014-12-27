@@ -98,7 +98,7 @@
           (match ppqn
             (24 (! tick-chan (ev-tick songpos))
                 (incf songpos 4))
-            (96 (hires-tick tick-chan (measure-tick-time))))))))))
+            (96 (hires-tick tick-chan (/ (measure-tick-time) 24))))))))))
 
 (defvar *clock-thread* nil)
 
