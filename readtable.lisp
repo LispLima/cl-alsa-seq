@@ -5,6 +5,8 @@
 
 (defun quneo-map-event (in-event)
   (match in-event
+
+    ;;Transport buttons
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY (not 0)
                                NOTE 26
@@ -15,11 +17,11 @@
                                NOTE 25
                                CHANNEL +quneo-chan+))
      (list (ev-loop-stop)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY (not 0)
-                               NOTE 24
-                               CHANNEL +quneo-chan+))
-     (list (ev-loop-cycle)))
+    ;;TODO make 'rec' button do something
+
+    ;;TODO add ev-loop-group to midiloops program
+    ;; odd numbers are loop groups,
+    ;; even numbers are loops in group
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
                                NOTE 11
@@ -27,9 +29,19 @@
      (list (ev-active-loop 1)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
+                               NOTE 12
+                               CHANNEL +quneo-chan+))
+     (list (ev-loop-group 1)))
+    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+            :EVENT-DATA (plist VELOCITY _
                               NOTE 13
                               CHANNEL +quneo-chan+))
      (list (ev-active-loop 2)))
+    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+            :EVENT-DATA (plist VELOCITY _
+                              NOTE 14
+                              CHANNEL +quneo-chan+))
+     (list (ev-loop-group 2)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
                               NOTE 15
@@ -37,49 +49,35 @@
      (list (ev-active-loop 3)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
+                              NOTE 16
+                              CHANNEL +quneo-chan+))
+     (list (ev-loop-group 3)))
+    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+            :EVENT-DATA (plist VELOCITY _
                               NOTE 17
                               CHANNEL +quneo-chan+))
      (list (ev-active-loop 4)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 12
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-erase 1)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 14
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-erase 2)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 16
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-erase 3)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
                               NOTE 18
                               CHANNEL +quneo-chan+))
-     (list (ev-loop-erase 4)))
+     (list (ev-loop-group 4)))
+
+    ;;toggle metronome
+    ;; TODO Note19
+
+    ;;Left hand big circle for overdub toggle
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 106
+                              NOTE 4
                               CHANNEL +quneo-chan+))
      (list (ev-loop-overdub)))
-    ;; ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-    ;;          :EVENT-DATA (plist VELOCITY _
-    ;;                            NOTE 107
-    ;;                            CHANNEL +quneo-chan+))
-    ;;   (list (ev-loop-overwrite)))
+    ;;Right hand big circle for usual loop-cycle
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 108
+                              NOTE 5
                               CHANNEL +quneo-chan+))
-     (list (ev-loop-push-extend)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 109
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-continue)))
+     (list (ev-loop-cycle)))
     (_ (list in-event))))
 
 (defun quneo-reader (in-events)

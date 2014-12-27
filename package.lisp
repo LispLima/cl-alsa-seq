@@ -1,13 +1,13 @@
 ;;;; package.lisp
 
-(defpackage #:cl-alsaseq
-  (:use #:cl #:cffi #:calispel #:optima #:optima.extra)
+(defpackage :cl-alsaseq
+  (:use :cl :cffi :calispel :optima :optima.extra)
   (:import-from :let-over-lambda
-                #:g!-symbol-p
-                #:defmacro/g!
-                #:o!-symbol-p
-                #:o!-symbol-to-g!-symbol
-                #:defmacro!)
+                :g!-symbol-p
+                :defmacro/g!
+                :o!-symbol-p
+                :o!-symbol-to-g!-symbol
+                :defmacro!)
   (:export :open-port
            :close-port
            :open-seq
@@ -23,9 +23,8 @@
            :param
            ))
 
-
-(defpackage #:cl-alsaseq.quick
-  (:use #:cl #:cl-alsaseq)
+(defpackage :cl-alsaseq.quick
+  (:use :cl :cl-alsaseq)
   (:export :send-note-on
            :send-note-off
            :send-pgmchange
@@ -34,8 +33,8 @@
            :send-control
            ))
 
-(defpackage #:midihelper
-  (:use #:cl #:cffi #:cl-alsaseq #:optima #:optima.extra #:calispel)
+(defpackage :midihelper
+  (:use :cl :cffi :cl-alsaseq :optima :optima.extra :calispel)
   (:export :*clock-ochan*
            :*clock-ctrl-chan*
            :*reader-ichan*
@@ -61,11 +60,11 @@
            ))
 
 (defpackage #:midiloops
-  (:use #:cl #:cl-alsaseq #:midihelper #:optima #:optima.extra #:calispel)
+  (:use :cl :cl-alsaseq :midihelper :optima :optima.extra :calispel)
   (:import-from :let-over-lambda
-                #:g!-symbol-p
-                #:defmacro/g!
-                #:o!-symbol-p
-                #:o!-symbol-to-g!-symbol
-                #:defmacro!)
-  (:nicknames #:mloops))
+                :g!-symbol-p
+                :defmacro/g!
+                :o!-symbol-p
+                :o!-symbol-to-g!-symbol
+                :defmacro!)
+  (:nicknames :mloops))

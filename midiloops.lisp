@@ -12,7 +12,9 @@
 (defun new-m-loop ()
   (list
    :seq (make-array (* +default-loop-res+
-                       +default-loop-len+) :initial-element nil :fill-pointer 0)
+                       +default-loop-len+)
+                    :initial-element nil
+                    :fill-pointer 0)
    :pos 0;;loop tape head
    :off 0;;loop start time clock microticks
    :play nil;; nil :push-extend :repeat
@@ -22,7 +24,10 @@
 
 (defun make-fixed-loop (bars &key (major 4) (minor 4) (res +default-loop-res+))
   (let ((newloop (new-m-loop)))
-    (setf (getf newloop :seq) (make-array (/ (* bars major 4 res) minor) :initial-element nil :fill-pointer 0))
+    (setf (getf newloop :seq)
+          (make-array (/ (* bars major 4 res) minor)
+                      :initial-element nil
+                      :fill-pointer 0))
     newloop))
 
 (defparameter *default-tick-ev*
