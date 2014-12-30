@@ -15,4 +15,5 @@
                (:file "midihelper/clock")
                (:file "midihelper/midihelper")
                (:file "easy-api")
+               (:file "readtable")
                (:file "midiloops")))

@@ -23,42 +23,42 @@
     ;; even numbers are loops in group
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                               NOTE 11
+                               NOTE 12
                                CHANNEL +quneo-chan+))
      (list (ev-active-loop 1)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                               NOTE 12
+                               NOTE 11
                                CHANNEL +quneo-chan+))
      (list (ev-loop-group 1)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 13
+                              NOTE 14
                               CHANNEL +quneo-chan+))
      (list (ev-active-loop 2)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 14
+                              NOTE 13
                               CHANNEL +quneo-chan+))
      (list (ev-loop-group 2)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 15
+                              NOTE 16
                               CHANNEL +quneo-chan+))
      (list (ev-active-loop 3)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 16
+                              NOTE 15
                               CHANNEL +quneo-chan+))
      (list (ev-loop-group 3)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 17
+                              NOTE 18
                               CHANNEL +quneo-chan+))
      (list (ev-active-loop 4)))
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY _
-                              NOTE 18
+                              NOTE 17
                               CHANNEL +quneo-chan+))
      (list (ev-loop-group 4)))
 
@@ -67,8 +67,7 @@
             :EVENT-DATA (plist VELOCITY vel
                               NOTE 19
                               CHANNEL +quneo-chan+))
-     (toggle-metronome)
-     in-event)
+     (print (list (ev-toggle-metronome))))
 
     ;;Left hand big circle for overdub toggle
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON

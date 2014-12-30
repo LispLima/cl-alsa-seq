@@ -83,19 +83,41 @@
   ;;(make-jazz-metro 2)
   )
 
-(defvar *loop-stack* (let ((looplist
-                              `(,@(loop for i from 1 to +n-loops+
-                                     collect (append `(:loop-id ,i)
-                                                     (new-m-loop))))))
-                       (make-array (length looplist)
-                                   :initial-contents looplist
-                                   :fill-pointer (length looplist))))
+(defvar *loop-stacks*
+  (make-array 4
+              :initial-contents
+              (loop for i from 1 to 4
+                 collect (let ((looplist
+                                  `(,@(loop for i from 1 to +n-loops+
+                                         collect (append `(:loop-id ,i)
+                                                         (new-m-loop))))))
+                           (make-array (length looplist)
+                                       :initial-contents looplist
+                                       :fill-pointer (length looplist))))))
+
+(defvar *loop-stack* (aref *loop-stacks* 0))
 
 (defun simple-metro ()
   (nth +n-loops+ *loop-stack*))
 
 (defun jazz-metro ()
   (nth (+ 1 +n-loops+) *loop-stack*))
+
+(defun ev-toggle-metronome ()
+  (list :EVENT-TYPE :TOGGLE-METRONOME))
+
+(defun toggle-metronome ()
+  (symbol-macrolet ((tog (getf *metronome* :play)))
+    (setf tog (and (not tog)
+                   :repeat))))
+
+(defun ev-loop-group (group-id)
+  (list :EVENT-TYPE :LOOP-GROUP
+        :GROUP-ID group-id))
+
+(defun loop-group (group-id)
+  (setf *loop-stack*
+        (aref *loop-stacks* (- group-id 1))))
 
 (let ((active-loop 1))
 
@@ -105,11 +127,6 @@
 
   (defun active-loop (n)
     (setf active-loop n))
-
-  (defun toggle-metronome ()
-    (symbol-macrolet ((tog (getf *metronome* :play)))
-      (setf tog (and (not tog)
-                     :repeat))))
 
   (defun ev-loop-push-extend (&optional (loop-id active-loop))
     (list :EVENT-TYPE :LOOP-PUSH-EXTEND
@@ -315,6 +332,9 @@
      (loop-erase mloop))
     ((plist :event-type :loop-cycle)
      (loop-cycle mloop *last-songpos*))
+    ((plist :event-type :loop-group
+            :group-id group-id)
+     (loop-group group-id))
     (if-gesture
       (store-gesture event mloop))))
 
@@ -326,6 +346,8 @@
                         ((? *reader-ochan* ev) ev))))
 
     (macromatch event
+      ((plist :event-type :toggle-metronome)
+       (toggle-metronome))
       ((plist :event-type (guard type
                                  (or (equal type :microtick)
                                      (equal type :snd_seq_event_clock)))
