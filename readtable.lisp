@@ -85,6 +85,12 @@
                               NOTE 5
                               CHANNEL +quneo-chan+))
      (list (ev-loop-cycle)))
+    ((plist :EVENT-TYPE :SND_SEQ_EVENT_CONTROLLER
+            :EVENT-DATA (plist VALUE control-val
+                               PARAM 10
+                               CHANNEL +quneo-chan+))
+     (set-master-bpm (+ 50 (* control-val 2)))
+     nil)
     (_ (list in-event))))
 
 (defun quneo-reader (in-events)
