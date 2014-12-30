@@ -86,12 +86,8 @@
   (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
     (cffi:with-foreign-objects ((pfds '(:struct pollfd) npfds)
                                 (*event '(:struct snd_seq_event_t)))
-      (snd_seq_poll_descriptors *seq pfds npfds POLLIN)
-      (if (> (poll pfds npfds -1) 0)
-          (progn
-            (snd_seq_event_input *seq *event)
-            (describe-event (mem-ref *event :pointer)))
-          (warn (foreign-funcall "strerror" :int *errno* :string))))))
+      (snd_seq_event_input *seq *event)
+      (describe-event (mem-ref *event :pointer)))))
 
 (defcfun "memset" :pointer
   (*dest :pointer)

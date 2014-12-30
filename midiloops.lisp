@@ -364,7 +364,7 @@
 (defvar *midiloops-thread* nil)
 
 (defun start-midiloops ()
-  (start-midihelper :slave)
+  (start-midihelper :master)
   (sleep 1)
   (setf *midiloops-thread* (bt:make-thread (lambda ()
                                              (loop
