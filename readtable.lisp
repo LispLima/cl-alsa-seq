@@ -21,7 +21,6 @@
                                NOTE 24
                                CHANNEL +quneo-chan+))
      (list (ev-loop-erase)))
-    ;;TODO make 'rec' button do something
 
     ;;TODO add ev-loop-group to midiloops program
     ;; odd numbers are loop groups,
