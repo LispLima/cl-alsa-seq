@@ -20,6 +20,7 @@
    :play nil;; nil :push-extend :repeat
    :rec nil;; nil :overwrite or :overdub
    :trans #'identity
+   :tones nil
    ))
 
 (defun make-fixed-loop (bars &key (major 4) (minor 4) (res +default-loop-res+))
@@ -77,13 +78,15 @@
                 (setf (aref seq i) tick-ev))))))
     newloop))
 
+(defvar *metronome*
+  (make-simple-metro 2)
+  ;;(make-jazz-metro 2)
+  )
+
 (defvar *loop-stack* (let ((looplist
                               `(,@(loop for i from 1 to +n-loops+
                                      collect (append `(:loop-id ,i)
-                                                     (new-m-loop)))
-                                  (:loop-id :metro ,@(make-simple-metro 2))
-                                  ;; (:loop-id :jazz-metro ,@(make-jazz-metro 2))
-                                  )))
+                                                     (new-m-loop))))))
                        (make-array (length looplist)
                                    :initial-contents looplist
                                    :fill-pointer (length looplist))))
@@ -102,6 +105,11 @@
 
   (defun active-loop (n)
     (setf active-loop n))
+
+  (defun toggle-metronome ()
+    (symbol-macrolet ((tog (getf *metronome* :play)))
+      (setf tog (and (not tog)
+                     :repeat))))
 
   (defun ev-loop-push-extend (&optional (loop-id active-loop))
     (list :EVENT-TYPE :LOOP-PUSH-EXTEND
@@ -316,16 +324,22 @@
   ;; (drain-channel *clock-ochan*)
   (let ((event (pri-alt ((? *clock-ochan* ev) ev)
                         ((? *reader-ochan* ev) ev))))
+
     (macromatch event
       ((plist :event-type (guard type
                                  (or (equal type :microtick)
                                      (equal type :snd_seq_event_clock)))
               :songpos songpos)
-       (setf *last-songpos* songpos))
+       (setf *last-songpos* songpos)
+       (seek-to *metronome* songpos)
+       (read-gestures *metronome* songpos)
+       (match event
+         ((plist :event-type :snd_seq_event_clock)
+          (if *send-clock* (send-event event)))));;send clock
+
       (if-gesture
-        (send-event event));;echo gestures
-      ((plist :event-type :snd_seq_event_clock)
-       (if *send-clock* (send-event event))));;echo clock
+        (send-event event)));;echo gestures
+
     (loop for idx below (length *loop-stack*)
        do
          (match (list event (aref *loop-stack* idx))

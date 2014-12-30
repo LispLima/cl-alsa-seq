@@ -64,7 +64,11 @@
      (list (ev-loop-group 4)))
 
     ;;toggle metronome
-    ;; TODO Note19
+    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+            :EVENT-DATA (plist VELOCITY _
+                              NOTE 19
+                              CHANNEL +quneo-chan+))
+     (list (toggle-metronome)))
 
     ;;Left hand big circle for overdub toggle
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON

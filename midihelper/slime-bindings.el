@@ -73,15 +73,15 @@
 (defun loop4 ()
   (interactive)
   (slime-interactive-eval "(mloops::active-loop 4)"))
-(defun loopmetro ()
+(defun toggle-metronome ()
   (interactive)
-  (slime-interactive-eval "(mloops::active-loop :metro)"))
+  (slime-interactive-eval "(mloops::toggle-metronome)"))
 
 (global-set-key (kbd "M-m 1") 'loop1)
 (global-set-key (kbd "M-m 2") 'loop2)
 (global-set-key (kbd "M-m 3") 'loop3)
 (global-set-key (kbd "M-m 4") 'loop4)
-(global-set-key (kbd "M-m 0") 'loopmetro)
+(global-set-key (kbd "M-m 0") 'toggle-metronome)
 
 (defun midi-loop-cycle ()
   (interactive)
