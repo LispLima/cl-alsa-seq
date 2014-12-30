@@ -16,6 +16,11 @@
                                NOTE 25
                                CHANNEL +quneo-chan+))
      (list (ev-loop-stop)))
+    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+            :EVENT-DATA (plist VELOCITY (not 0)
+                               NOTE 24
+                               CHANNEL +quneo-chan+))
+     (list (ev-loop-erase)))
     ;;TODO make 'rec' button do something
 
     ;;TODO add ev-loop-group to midiloops program
