@@ -83,11 +83,9 @@
 
 (defun recv (*seq)
   "poll the alsa midi port at *seq and my-port, block until there is a midi event to read, then return that event"
-  (let* ((npfds (snd_seq_poll_descriptors_count *seq POLLIN)))
-    (cffi:with-foreign-objects ((pfds '(:struct pollfd) npfds)
-                                (*event '(:struct snd_seq_event_t)))
-      (snd_seq_event_input *seq *event)
-      (describe-event (mem-ref *event :pointer)))))
+  (cffi:with-foreign-object (*event '(:struct snd_seq_event_t))
+    (snd_seq_event_input *seq *event)
+    (describe-event (mem-ref *event :pointer))))
 
 (defcfun "memset" :pointer
   (*dest :pointer)
