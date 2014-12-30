@@ -5,7 +5,6 @@
 
 (defun quneo-map-event (in-event)
   (match in-event
-
     ;;Transport buttons
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
             :EVENT-DATA (plist VELOCITY (not 0)
@@ -65,10 +64,11 @@
 
     ;;toggle metronome
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
+            :EVENT-DATA (plist VELOCITY vel
                               NOTE 19
                               CHANNEL +quneo-chan+))
-     (list (toggle-metronome)))
+     (toggle-metronome)
+     in-event)
 
     ;;Left hand big circle for overdub toggle
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON

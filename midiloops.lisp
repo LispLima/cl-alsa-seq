@@ -378,8 +378,9 @@
 (defvar *midiloops-thread* nil)
 
 (defun start-midiloops ()
-  (start-midihelper :master)
-  (sleep 1)
+  (start-midihelper :master
+                    96 #'quneo-reader)
+  (sleep 0.1)
   (setf *midiloops-thread* (bt:make-thread (lambda ()
                                              (loop
                                                 (restart-case (run-loop-stack)
