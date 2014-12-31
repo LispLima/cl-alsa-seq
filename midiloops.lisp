@@ -15,13 +15,54 @@
                        +default-loop-len+)
                     :initial-element nil
                     :fill-pointer 0)
-   :pos 0;;loop tape head
    :off 0;;loop start time clock microticks
    :play nil;; nil :push-extend :repeat
    :rec nil;; nil :overwrite or :overdub
-   :trans #'identity
-   :tones nil
+   :trans #'identity;;this function is applied at read time
+   :tones nil;;list of active notes to prevent stuck notes
    ))
+
+(defvar *songpos* 0)
+
+(defun pos (mloop)
+"Return a loops read-head position (loop frame of reference), calculated from offset, play state and *songpos*. Also handles push-extend behaviour"
+  (match mloop
+    ((plist :play play
+            :off off
+            ;;:rec rec
+            :seq seq)
+     (symbol-macrolet ((fill (fill-pointer seq)))
+       (if (>= *songpos* off)
+           (match play
+             (:push-extend
+              (let ((pos (- *songpos* off)))
+                (if (>= *songpos* (+ off fill))
+                    (setf fill (+ pos 1))
+                    pos)))
+             (:repeat
+                 (if (< fill 1)
+                     0
+                     (nth-value 1 (floor (- *songpos* off)
+                                         fill)))))
+           0)
+       ;; (match rec
+       ;;   (:overwrite
+       ;;    (setf (aref seq pos)
+       ;;          nil)))
+       ;;FIXME removed :overwrite functionality for now
+       ))))
+
+(defvar *sync* :beat)
+
+(defun nearest-beat (&optional (songpos *songpos*))
+  (let ((loopsync
+             (case *sync*
+               (:beat 96)
+               (:free 1)
+               (:loop1 (max (length (getf (aref *loop-stack* 0)
+                                          :seq))
+                            1)))))
+    (* loopsync (round songpos loopsync))))
 
 (defun make-fixed-loop (bars &key (major 4) (minor 4) (res +default-loop-res+))
   (let ((newloop (new-m-loop)))
@@ -184,22 +225,10 @@
 (defun loop-norec (mloop)
   (setf (getf mloop :rec) nil))
 
-(defvar *sync* :beat)
-
-(defun nearest-beat (songpos)
-  (let ((loopsync
-             (case *sync*
-               (:beat 96)
-               (:free 1)
-               (:loop1 (max (length (getf (aref *loop-stack* 0)
-                                          :seq))
-                            1)))))
-    (* loopsync (round songpos loopsync))))
-
 (defun loop-play (mloop songpos)
   (setf (getf mloop :play) :repeat)
   (symbol-macrolet ((off (getf mloop :off)))
-    (setf off (nearest-beat songpos))
+    (setf off (nearest-beat))
     (loop for i from off to (- songpos 1)
        do
          (mapcar #'send-event
@@ -210,10 +239,7 @@
 (defun loop-continue (mloop)
   (setf (getf mloop :play) :repeat))
 
-(defun loop-push-extend (mloop songpos)
-  (match mloop
-    ((plist :play nil)
-     (setf (getf mloop :pos) (nearest-beat songpos))))
+(defun loop-push-extend (mloop)
   (setf (getf mloop :play) :push-extend)
   (print mloop))
 
@@ -228,7 +254,9 @@
     (loop for i below (length seq)
        do (setf (aref seq i) nil))
     (setf (fill-pointer seq)
-          0)))
+          0))
+  (setf (getf mloop :tones) nil)
+  (print mloop))
 
 (defun loop-cycle (mloop songpos)
   (symbol-macrolet ((play (getf mloop :play))
@@ -239,13 +267,14 @@
                           (= 0 (fill-pointer seq))))
        (setf play :push-extend)
        (setf rec :overdub)
-       (setf (getf mloop :off) (nearest-beat songpos)))
+       (setf (getf mloop :off) (nearest-beat)))
       ((plist :play :push-extend
               :rec :overdub)
        (setf play :repeat)
        (setf (fill-pointer (getf mloop :seq))
              (nearest-beat (- songpos (getf mloop :off))))
-       (setf rec nil))
+       (setf rec nil)
+       (drain-hanging-tones mloop))
       ((plist :play :repeat)
        (setf play nil)
        (setf rec nil))
@@ -254,39 +283,40 @@
        (setf play :repeat))))
     (print mloop))
 
+(defun note-pop (tones note channel)
+  (if tones
+      (match (car tones)
+        ((plist :event-data
+                (plist NOTE (eq note) CHANNEL (eq channel)))
+         (note-pop (cdr tones) note channel))
+        (otherwise (cons (car tones)
+               (note-pop (cdr tones) note channel))))))
+
 (defun store-gesture (event mloop)
   (match mloop
     ((plist :play _
             :rec  (not nil))
-     (symbol-macrolet ((seq (getf mloop :seq)))
+     (symbol-macrolet ((tones (getf mloop :tones))
+                       (seq (getf mloop :seq)))
        (push event (aref seq
-                         (getf mloop :pos)))))))
+                         (pos mloop)))
+       (match event
+         ((plist :event-type :SND_SEQ_EVENT_NOTEON)
+          (let ((event-copy (copy-tree event)))
+            (setf (getf event-copy :event-type)
+                  :SND_SEQ_EVENT_NOTEOFF)
+            (push event-copy tones)))
+         ((plist :event-type :SND_SEQ_EVENT_NOTEOFF
+                 :event-data (plist NOTE note CHANNEL channel))
+          (setf tones
+                (note-pop tones note channel))))))))
 
-(defun seek-to (mloop songpos)
-  (match mloop
-    ((plist :play play
-            :off off
-            :rec rec
-            :seq seq)
-     (symbol-macrolet ((pos (getf mloop :pos))
-                       (fill (fill-pointer seq)))
-       (if (>= songpos off)
-           (match play
-             (:push-extend
-              (setf pos (- songpos off))
-              (if (>= songpos (+ off fill))
-                  (setf fill (+ pos 1))))
-             (:repeat
-                 (if (< fill 1)
-                     (return-from seek-to))
-                 (setf pos
-                       (nth-value 1 (floor (- songpos off)
-                                           fill)))))
-           (setf pos 0))
-       (match rec
-         (:overwrite
-          (setf (aref seq pos)
-                nil)))))))
+(defun drain-hanging-tones (mloop)
+  (symbol-macrolet ((slot (aref (getf mloop :seq)
+                                (pos mloop)))
+                    (tones (getf mloop :tones)))
+    (setf slot
+          (append tones slot))))
 
 (defun read-gestures (mloop songpos)
   (match mloop
@@ -296,7 +326,7 @@
                (send-event ev))
              (aref (funcall (getf mloop :trans)
                             (getf mloop :seq))
-                   (getf mloop :pos))))))
+                   (pos mloop))))))
 
 (defvar *last-songpos* 0)
 (defun dispatch-event (event mloop)
@@ -305,7 +335,6 @@
                                (or (equal type :microtick)
                                    (equal type :snd_seq_event_clock)))
             :songpos songpos)
-     (seek-to mloop songpos)
      (read-gestures mloop songpos))
     ((plist :event-type (guard type
                                (or (equal type :microtick)
@@ -315,7 +344,7 @@
             :loop-id loop-id)
      (active-loop loop-id))
     ((plist :event-type :loop-push-extend)
-     (loop-push-extend mloop *last-songpos*))
+     (loop-push-extend mloop))
     ((plist :event-type :loop-overdub)
      (loop-overdub mloop))
     ((plist :event-type :loop-overwrite)
@@ -352,8 +381,8 @@
                                  (or (equal type :microtick)
                                      (equal type :snd_seq_event_clock)))
               :songpos songpos)
-       (setf *last-songpos* songpos)
-       (seek-to *metronome* songpos)
+       (setf *last-songpos* *songpos*)
+       (setf *songpos* songpos)
        (read-gestures *metronome* songpos)
        (match event
          ((plist :event-type :snd_seq_event_clock)
