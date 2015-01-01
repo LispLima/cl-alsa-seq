@@ -3,94 +3,77 @@
 (defparameter +quneo-chan+ 15)
 (defparameter +quneo-led-chan+ 0)
 
-(defun quneo-map-event (in-event)
-  (match in-event
-    ;;Transport buttons
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY (not 0)
-                               NOTE 26
-                               CHANNEL +quneo-chan+))
-     (list (ev-loop-play)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY (not 0)
-                               NOTE 25
-                               CHANNEL +quneo-chan+))
-     (list (ev-loop-stop)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY (not 0)
-                               NOTE 24
-                               CHANNEL +quneo-chan+))
-     (list (ev-loop-erase)))
+(defmacro quneo-note (note &body body)
+  `((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
+           :EVENT-DATA (plist NOTE ,note
+                              CHANNEL +quneo-chan+))
+    ,@body))
 
-    ;;TODO add ev-loop-group to midiloops program
+(defvar *active-loop* 1)
+(defvar *loop-group* 1)
+
+(defun loop-ctrl (function &optional (loop-id *active-loop*))
+  (list :event-type :loop-ctrl
+        :loop-id loop-id
+        :function function))
+
+(defun global-ctrl (function)
+  (list :event-type :global-ctrl
+        :function function))
+
+(defun quneo-map-event (in-event)
+  (macromatch in-event
+    ;;Transport buttons
+    (quneo-note 26
+      (list (loop-ctrl #'loop-play)))
+    (quneo-note 25
+      (list (loop-ctrl #'loop-stop)))
+    (quneo-note 24
+      (list (loop-ctrl #'loop-erase)))
+
     ;; odd numbers are loop groups,
     ;; even numbers are loops in group
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                               NOTE 12
-                               CHANNEL +quneo-chan+))
-     (list (ev-active-loop 1)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                               NOTE 11
-                               CHANNEL +quneo-chan+))
-     (list (ev-loop-group 1)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 14
-                              CHANNEL +quneo-chan+))
-     (list (ev-active-loop 2)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 13
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-group 2)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 16
-                              CHANNEL +quneo-chan+))
-     (list (ev-active-loop 3)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 15
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-group 3)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 18
-                              CHANNEL +quneo-chan+))
-     (list (ev-active-loop 4)))
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 17
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-group 4)))
+    (quneo-note 11
+      (list (global-ctrl (lambda ()
+                           (loop-group 1)))))
+    (quneo-note 12
+      (setf *active-loop* 1))
+    (quneo-note 13
+      (list (global-ctrl (lambda ()
+                           (loop-group 2)))))
+    (quneo-note 14
+      (setf *active-loop* 2))
+    (quneo-note 15
+      (list (global-ctrl (lambda ()
+                           (loop-group 3)))))
+    (quneo-note 16
+      (setf *active-loop* 3))
+    (quneo-note 17
+      (list (global-ctrl (lambda ()
+                           (loop-group 4)))))
+    (quneo-note 18
+      (setf *active-loop* 4))
 
     ;;toggle metronome
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY vel
-                              NOTE 19
-                              CHANNEL +quneo-chan+))
-     (print (list (ev-toggle-metronome))))
+    (quneo-note 19
+      (list (global-ctrl #'ev-toggle-metronome)))
 
     ;;Left hand big circle for overdub toggle
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 4
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-overdub)))
+    (quneo-note 4
+      (list (loop-ctrl #'loop-overdub)))
     ;;Right hand big circle for usual loop-cycle
-    ((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
-            :EVENT-DATA (plist VELOCITY _
-                              NOTE 5
-                              CHANNEL +quneo-chan+))
-     (list (ev-loop-cycle)))
+    (quneo-note 5
+      (list (loop-ctrl #'loop-cycle)))
+
+    ;;Horizontal slider for tempo control
     ((plist :EVENT-TYPE :SND_SEQ_EVENT_CONTROLLER
             :EVENT-DATA (plist VALUE control-val
                                PARAM 10
                                CHANNEL +quneo-chan+))
      (set-master-bpm (+ 50 (* control-val 2)))
      nil)
+
+    ;;Pass through any other events
     (_ (list in-event))))
 
 (defun quneo-reader (in-events)
