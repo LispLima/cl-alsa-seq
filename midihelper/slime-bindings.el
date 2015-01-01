@@ -1,3 +1,5 @@
+;;FIXME Make this conform to readtable.lisp
+
 (defun test-midi-ev ()
   (interactive)
   (slime-interactive-eval "(print (midihelper:ev-start))"))
