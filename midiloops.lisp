@@ -210,7 +210,7 @@
   (setf (getf mloop :rec-tones) nil)
   (print mloop))
 
-(defun loop-cycle (mloop songpos)
+(defun loop-cycle (mloop &optional (songpos *songpos*))
   (symbol-macrolet ((play (getf mloop :play))
                     (rec (getf mloop :rec)))
     (match mloop

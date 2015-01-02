@@ -34,29 +34,28 @@
     ;; odd numbers are loop groups,
     ;; even numbers are loops in group
     (quneo-note 11
-      (list (global-ctrl (lambda ()
-                           (loop-group 1)))))
+      (list (global-ctrl (lambda () (loop-group 1)))))
     (quneo-note 12
       (setf *active-loop* 1))
+
     (quneo-note 13
-      (list (global-ctrl (lambda ()
-                           (loop-group 2)))))
+      (list (global-ctrl (lambda () (loop-group 2)))))
     (quneo-note 14
       (setf *active-loop* 2))
+
     (quneo-note 15
-      (list (global-ctrl (lambda ()
-                           (loop-group 3)))))
+      (list (global-ctrl (lambda () (loop-group 3)))))
     (quneo-note 16
       (setf *active-loop* 3))
+
     (quneo-note 17
-      (list (global-ctrl (lambda ()
-                           (loop-group 4)))))
+      (list (global-ctrl (lambda () (loop-group 4)))))
     (quneo-note 18
       (setf *active-loop* 4))
 
     ;;toggle metronome
     (quneo-note 19
-      (list (global-ctrl #'ev-toggle-metronome)))
+      (list (global-ctrl #'toggle-metronome)))
 
     ;;Left hand big circle for overdub toggle
     (quneo-note 4
