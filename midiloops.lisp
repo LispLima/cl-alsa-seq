@@ -153,7 +153,7 @@
           (match rec
             (:overdub
              nil)
-             ((or :overwrite nil)
+            ((or :overwrite nil)
               :overdub))))
   (print mloop))
 
@@ -260,19 +260,23 @@
       (setf tones
             (note-pop tones note channel)))))
 
+(defun skip-1st-if-future (event mloop)
+  "Ensure events recorded 'into the future' are marked to skip 1st play, e.g quantised recording or when the rec button is pressed slightly ahead of time.  Avoids repeated notes which would otherwise 'stick' the synth (noteon with no noteoff)"
+  (let ((event-copy (copy-tree event)))
+    (if (>= (+ (getf mloop :off)
+               (pos mloop))
+            *songpos*)
+        (setf (getf event-copy :skip-1st)
+              t)
+        event-copy)))
+
 (defun store-gesture (event mloop)
   (match mloop
     ((plist :play _
             :rec  (not nil))
      (symbol-macrolet ((tones (getf mloop :rec-tones))
                        (seq (getf mloop :seq)))
-       (push (let ((event-copy (copy-tree event)))
-               (if (>= (+ (getf mloop :off)
-                          (pos mloop))
-                       *songpos*)
-                   (setf (getf event-copy :skip-1st)
-                         t)
-                   event-copy));;The preceding block ensures events recorded 'into the future' are marked to skip 1st play, e.g quantised recording or when the rec button is pressed slightly ahead of time
+       (push (skip-1st-if-future event mloop)
              (aref seq
                    (pos mloop)))
        (hang-tones);;caution - very 'unhygienic' macro!
@@ -359,13 +363,6 @@
                                                  (equal ev-loop-id loop-id))))
                       (plist :loop-id loop-id)));;dispatch events where loop-ids match
             (dispatch-event event (aref *loop-stack* idx)))))))
-
-(defun test-single-loop ()
-  (let* ((myloop (aref *loop-stack* 0))
-         (seq (getf myloop :seq)))
-    (loop-erase myloop)
-    (setf (fill-pointer seq) (* 96 4))
-    (loop-overdub myloop)))
 
 (defvar *midiloops-thread* nil)
 
