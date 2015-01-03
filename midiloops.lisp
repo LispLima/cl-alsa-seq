@@ -266,18 +266,28 @@
             :rec  (not nil))
      (symbol-macrolet ((tones (getf mloop :rec-tones))
                        (seq (getf mloop :seq)))
-       (push event (aref seq
-                         (pos mloop)))
-       (hang-tones)))))
+       (push (let ((event-copy (copy-tree event)))
+               (if (>= (+ (getf mloop :off)
+                          (pos mloop))
+                       *songpos*)
+                   (setf (getf event-copy :skip-1st)
+                         t)
+                   event-copy));;The preceding block ensures events recorded 'into the future' are marked to skip 1st play, e.g quantised recording or when the rec button is pressed slightly ahead of time
+             (aref seq
+                   (pos mloop)))
+       (hang-tones);;caution - very 'unhygienic' macro!
+       ))))
 
 (defun read-gestures (mloop songpos)
   (match mloop
     ((plist :play (not nil)
             :off (guard off (>= songpos off)))
      (mapcar (lambda (event)
-               (symbol-macrolet ((tones (getf mloop :play-tones)))
-                 (hang-tones)
-                 (send-event event)))
+               (if (getf event :skip-1st)
+                   (setf (getf event :skip-1st) nil)
+                   (symbol-macrolet ((tones (getf mloop :play-tones)))
+                     (hang-tones);;caution - very 'unhygienic' macro!
+                     (send-event event))))
              (aref (funcall (getf mloop :trans)
                             (getf mloop :seq))
                    (pos mloop))))))
