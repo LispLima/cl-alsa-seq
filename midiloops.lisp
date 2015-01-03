@@ -2,7 +2,7 @@
 
 (defconstant +n-loops+ 4)
 (defconstant +default-loop-res+ 96)
-(defconstant +default-loop-len+ 800)
+(defconstant +default-loop-len+ 1500)
 
 (defun null-trigger ()
   (lambda (event)
@@ -21,8 +21,23 @@
    :trans #'identity;;this function is applied at read time
    :rec-tones nil;;list of active rec notes to prevent stuck notes
    :play-tones nil;;list of active play notes to prevent stuck notes
+   :end-tag (make-array 96
+                        :initial-element nil);;events which were played just before rec button was hit.  These will be glued to back of the array
    ))
 
+(defvar *loop-stacks*
+  (make-array 4
+              :initial-contents
+              (loop for i from 1 to 4
+                 collect (let ((looplist
+                                  `(,@(loop for i from 1 to +n-loops+
+                                         collect (append `(:loop-id ,i)
+                                                         (new-m-loop))))))
+                           (make-array (length looplist)
+                                       :initial-contents looplist
+                                       :fill-pointer (length looplist))))))
+
+(defvar *loop-stack* (aref *loop-stacks* 0))
 (defvar *songpos* 0)
 
 (defun pos (mloop)
@@ -49,15 +64,18 @@
 
 (defvar *sync* :beat)
 
+(defun sync-intvl ()
+  (case *sync*
+    (:beat 96)
+    (:free 1)
+    (:loop1 (max (length (getf (aref *loop-stack* 0)
+                               :seq))
+                 1))))
+
 (defun nearest-beat (&optional (songpos *songpos*))
-  (let ((loopsync
-             (case *sync*
-               (:beat 96)
-               (:free 1)
-               (:loop1 (max (length (getf (aref *loop-stack* 0)
-                                          :seq))
-                            1)))))
-    (* loopsync (round songpos loopsync))))
+  (* (sync-intvl)
+     (round songpos
+            (sync-intvl))))
 
 (defun make-fixed-loop (bars &key (major 4) (minor 4) (res +default-loop-res+))
   (let ((newloop (new-m-loop)))
@@ -119,19 +137,6 @@
   ;;(make-jazz-metro 2)
   )
 
-(defvar *loop-stacks*
-  (make-array 4
-              :initial-contents
-              (loop for i from 1 to 4
-                 collect (let ((looplist
-                                  `(,@(loop for i from 1 to +n-loops+
-                                         collect (append `(:loop-id ,i)
-                                                         (new-m-loop))))))
-                           (make-array (length looplist)
-                                       :initial-contents looplist
-                                       :fill-pointer (length looplist))))))
-
-(defvar *loop-stack* (aref *loop-stacks* 0))
 
 (defun toggle-metronome ()
   (symbol-macrolet ((tog (getf *metronome* :play)))
@@ -297,11 +302,28 @@
 
 (defvar *send-clock* nil)
 
+(defvar *last-beat* (make-array 96
+                                :initial-element nil))
+
+(defun handle-tick (songpos event)
+  (setf *last-songpos* *songpos*)
+  (setf *songpos* songpos)
+  (read-gestures *metronome* songpos)
+  (setf (aref *last-beat*
+              (nth-value 1 (floor *songpos* (sync-intvl))))
+        nil)
+  (match event
+    ((plist :event-type :snd_seq_event_clock)
+     (if *send-clock* (send-event event)))))
+
+(defun handle-gesture (event)
+  (push event (aref *last-beat* (- *songpos*
+                                   (nearest-beat))))
+  (send-event event))
+
 (defun run-loop-stack ()
-  ;; (drain-channel *clock-ochan*)
   (let ((event (pri-alt ((? *clock-ochan* ev) ev)
                         ((? *reader-ochan* ev) ev))))
-
     (macromatch event
       ((plist :event-type :toggle-metronome)
        (toggle-metronome))
@@ -312,15 +334,10 @@
                                  (or (equal type :microtick)
                                      (equal type :snd_seq_event_clock)))
               :songpos songpos)
-       (setf *last-songpos* *songpos*)
-       (setf *songpos* songpos)
-       (read-gestures *metronome* songpos)
-       (match event
-         ((plist :event-type :snd_seq_event_clock)
-          (if *send-clock* (send-event event)))));;send clock
+       (handle-tick songpos event));;send clock
 
       (if-gesture
-        (send-event event)));;echo gestures
+        (handle-gesture event)));;echo gestures
 
     (loop for idx below (length *loop-stack*)
        do
