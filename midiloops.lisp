@@ -232,15 +232,11 @@
        (setf off (nearest-beat))
        (loop
           for i
-          from (- (sync-intvl)
-                  1
-                  (min (- *songpos* (nearest-beat))
-                       0))
+          from 0
           to (/ (sync-intvl) +look-back-intvl-divisor+)
           do (mapcar (lambda (event)
                        (store-gesture event mloop))
-                     (aref *last-beat* i))))
-      ;;FIXME last-beat must be a FIFO queue 1 beat long, not a beat-synced array
+                     (nth i (car *last-beat*)))))
       ;;UNTESTED this loop should prevent dropping events which are recorded just
       ;;before loop-cycle received.
       ((plist :play :push-extend
@@ -345,23 +341,36 @@
 
 (defvar *send-clock* nil)
 
-(defvar *last-beat* (make-array 96
-                                :initial-element nil))
+(defun make-queue (n)
+  (let ((my-list (loop for i below n collect nil)))
+    (cons my-list (last my-list))))
+
+(defun pop-queue (queue)
+  (pop (car queue)))
+
+(defun push-queue (queue el)
+  (if (car queue)
+      (progn
+        (rplacd (cdr queue) (list el))
+        (rplacd queue (cddr queue)))
+      (let ((new-list (list el)))
+        (rplaca queue new-list)
+        (rplacd queue new-list))))
+
+(defvar *last-beat* (make-queue 96))
 
 (defun handle-tick (songpos event)
   (setf *last-songpos* *songpos*)
   (setf *songpos* songpos)
   (read-gestures *metronome* songpos)
-  (setf (aref *last-beat*
-              (nth-value 1 (floor *songpos* (sync-intvl))))
-        nil)
+  (push-queue *last-beat* nil)
+  (pop-queue *last-beat*)
   (match event
     ((plist :event-type :snd_seq_event_clock)
      (if *send-clock* (send-event event)))))
 
 (defun handle-gesture (event)
-  (push event (aref *last-beat* (- *songpos*
-                                   (nearest-beat))))
+  (push event (cdr *last-beat*))
   (send-event event))
 
 (defun run-loop-stack ()
