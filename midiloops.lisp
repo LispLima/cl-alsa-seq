@@ -21,8 +21,6 @@
    :trans #'identity;;this function is applied at read time
    :rec-tones nil;;list of active rec notes to prevent stuck notes
    :play-tones nil;;list of active play notes to prevent stuck notes
-   :end-tag (make-array 96
-                        :initial-element nil);;events which were played just before rec button was hit.  These will be glued to back of the array
    ))
 
 (defvar *loop-stacks*
