@@ -215,22 +215,50 @@
   (setf (getf mloop :rec-tones) nil)
   (print mloop))
 
+(defparameter +look-back-intvl-divisor+ 5);;Anything under a quintuplet is considered 'in time'
+
 (defun loop-cycle (mloop &optional (songpos *songpos*))
   (symbol-macrolet ((play (getf mloop :play))
-                    (rec (getf mloop :rec)))
+                    (rec (getf mloop :rec))
+                    (seq (getf mloop :seq))
+                    (fp (fill-pointer (getf mloop :seq)))
+                    (off (getf mloop :off)))
     (match mloop
       ((plist :play nil
               :seq (guard seq
-                          (= 0 (fill-pointer seq))))
+                          (= 0 (fill-pointer seq))));;Empty loop start recording
        (setf play :push-extend)
        (setf rec :overdub)
-       (setf (getf mloop :off) (nearest-beat)))
+       (setf off (nearest-beat))
+       (loop
+          for i
+          from (- (sync-intvl)
+                  1
+                  (min (- *songpos* (nearest-beat))
+                       0))
+          to (/ (sync-intvl) +look-back-intvl-divisor+)
+          do (mapcar (lambda (event)
+                       (store-gesture event mloop))
+                     (aref *last-beat* i))))
+      ;;FIXME last-beat must be a FIFO queue 1 beat long, not a beat-synced array
+      ;;UNTESTED this loop should prevent dropping events which are recorded just
+      ;;before loop-cycle received.
       ((plist :play :push-extend
               :rec :overdub)
        (setf play :repeat)
-       (setf (fill-pointer (getf mloop :seq))
-             (nearest-beat (- songpos (getf mloop :off))))
+       (setf fp
+             (nearest-beat (- songpos off)))
+       ;;UNTESTED This loop should prevent dropping events which are recorded
+       ;;just before loop-cycle received, when loop-cycle received
+       ;;behind the beat.
+       (loop for i from (+ fp off) to songpos
+          do (mapcar (lambda (event)
+                       (store-gesture event mloop i))
+                     (aref seq i)))
        (setf rec nil)
+       ;;FIXME IF loop-cycle is received ahead of the beat, instead of
+       ;;setting rec to nil, we should set rec to some intermediate state,
+       ;;which will schedule the loop to stop recording on the beat
        (drain-hanging-rec-tones mloop))
       ((plist :play :repeat)
        (loop-stop mloop))
@@ -248,6 +276,16 @@
         (otherwise (cons (car tones)
                (note-pop (cdr tones) note channel))))))
 
+(defun skip-1st-if-future (event mloop)
+  "Ensure events recorded 'into the future' are marked to skip 1st play, e.g quantised recording or when the rec button is pressed slightly ahead of time.  Avoids repeated notes which would otherwise 'stick' the synth (noteon with no noteoff)"
+  (let ((event-copy (copy-tree event)))
+    (if (>= (+ (getf mloop :off)
+               (pos mloop))
+            *songpos*)
+        (setf (getf event-copy :skip-1st)
+              t)
+        event-copy)))
+
 (defmacro hang-tones ()
   `(match event
      ((plist :event-type :SND_SEQ_EVENT_NOTEON)
@@ -260,17 +298,8 @@
       (setf tones
             (note-pop tones note channel)))))
 
-(defun skip-1st-if-future (event mloop)
-  "Ensure events recorded 'into the future' are marked to skip 1st play, e.g quantised recording or when the rec button is pressed slightly ahead of time.  Avoids repeated notes which would otherwise 'stick' the synth (noteon with no noteoff)"
-  (let ((event-copy (copy-tree event)))
-    (if (>= (+ (getf mloop :off)
-               (pos mloop))
-            *songpos*)
-        (setf (getf event-copy :skip-1st)
-              t)
-        event-copy)))
-
-(defun store-gesture (event mloop)
+(defun store-gesture (event mloop
+                      &optional (loop-pos (pos mloop)))
   (match mloop
     ((plist :play _
             :rec  (not nil))
@@ -278,7 +307,7 @@
                        (seq (getf mloop :seq)))
        (push (skip-1st-if-future event mloop)
              (aref seq
-                   (pos mloop)))
+                   loop-pos))
        (hang-tones);;caution - very 'unhygienic' macro!
        ))))
 
