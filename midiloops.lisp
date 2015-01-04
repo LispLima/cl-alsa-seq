@@ -176,7 +176,8 @@
                                 (pos mloop)))
                     (tones (getf mloop :rec-tones)))
     (setf slot
-          (append tones slot))))
+          (append tones slot))
+    (setf tones nil)))
 
 (defun loop-play (mloop)
   (setf (getf mloop :play) :repeat)
@@ -211,6 +212,7 @@
     (setf (fill-pointer seq)
           0))
   (setf (getf mloop :rec-tones) nil)
+  (setf (getf mloop :play-tones) nil)
   (print mloop))
 
 (defparameter +look-back-intvl-divisor+ 5);;Anything under a quintuplet is considered 'in time'
@@ -273,12 +275,12 @@
 (defun skip-1st-if-future (event mloop)
   "Ensure events recorded 'into the future' are marked to skip 1st play, e.g quantised recording or when the rec button is pressed slightly ahead of time.  Avoids repeated notes which would otherwise 'stick' the synth (noteon with no noteoff)"
   (let ((event-copy (copy-tree event)))
-    (if (>= (+ (getf mloop :off)
-               (pos mloop))
-            *songpos*)
+    (if (> (+ (getf mloop :off)
+              (pos mloop))
+           *songpos*)
         (setf (getf event-copy :skip-1st)
-              t)
-        event-copy)))
+              t))
+    event-copy))
 
 (defmacro hang-tones ()
   `(match event
