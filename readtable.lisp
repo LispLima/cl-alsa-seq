@@ -36,22 +36,26 @@
     (quneo-note 11
       (list (global-ctrl (lambda () (loop-group 1)))))
     (quneo-note 12
-      (setf *active-loop* 1))
+      (setf *active-loop* 1)
+      nil)
 
     (quneo-note 13
       (list (global-ctrl (lambda () (loop-group 2)))))
     (quneo-note 14
-      (setf *active-loop* 2))
+      (setf *active-loop* 2)
+      nil)
 
     (quneo-note 15
       (list (global-ctrl (lambda () (loop-group 3)))))
     (quneo-note 16
-      (setf *active-loop* 3))
+      (setf *active-loop* 3)
+      nil)
 
     (quneo-note 17
       (list (global-ctrl (lambda () (loop-group 4)))))
     (quneo-note 18
-      (setf *active-loop* 4))
+      (setf *active-loop* 4)
+      nil)
 
     ;;toggle metronome
     (quneo-note 19

@@ -237,6 +237,8 @@
           do (mapcar (lambda (event)
                        (store-gesture event mloop))
                      (nth i (car *last-beat*)))))
+
+      ;;FIXME don't think this actually works...
       ;;UNTESTED this loop should prevent dropping events which are recorded just
       ;;before loop-cycle received.
       ((plist :play :push-extend
@@ -247,7 +249,7 @@
        ;;UNTESTED This loop should prevent dropping events which are recorded
        ;;just before loop-cycle received, when loop-cycle received
        ;;behind the beat.
-       (loop for i from (+ fp off) to songpos
+       (loop for i from fp to (- songpos off)
           do (mapcar (lambda (event)
                        (store-gesture event mloop i))
                      (aref seq i)))
@@ -405,7 +407,7 @@
 (defvar *midiloops-thread* nil)
 
 (defun start-midiloops ()
-  (start-midihelper :master
+  (start-midihelper :slave
                     96 #'quneo-reader)
   (sleep 0.1)
   (setf *midiloops-thread* (bt:make-thread (lambda ()
