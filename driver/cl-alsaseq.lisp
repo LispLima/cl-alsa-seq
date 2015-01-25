@@ -104,7 +104,7 @@
     (setf (mem-ref client :uchar) *client )))
 
 (defmacro with-midi-event ((var data type
-                                &key (queue SND_SEQ_QUEUE_DIRECT))
+                                &key (queue snd_seq_queue_direct))
                            &body body)
   `(let ((,var (convert-to-foreign (list
                                     'type ,type
@@ -116,23 +116,23 @@
        (let ((,data data))
          ,@body))))
 
-(defmacro! with-midi-ctrl-event ((var channel param value) &body body)
-  `(with-midi-event (,var ,g!data :snd_seq_ev_ctrl)
+(defmacro! with-midi-ctrl-event ((var type channel param value) &body body)
+  `(with-midi-event (,var ,g!data (ev-key-int ,type))
      (let ((,g!channel ,channel)
            (,g!param ,param)
            (,g!value ,value))
        (with-foreign-slots (((:pointer channel)
                              (:pointer param)
                              (:pointer value))
-                            ,g!data '(:struct snd_seq_ev_ctrl_t))
+                            ,g!data (:struct snd_seq_ev_ctrl_t))
          (setf (mem-ref channel :uchar) ,g!channel)
          (setf (mem-ref param :uint) ,g!param)
          (setf (mem-ref value :int) ,g!value)))
      ,@body))
 
-(defmacro! with-midi-note-event ((var channel note velocity
+(defmacro! with-midi-note-event ((var type channel note velocity
                                       off_velocity duration) &body body)
-  `(with-midi-event (,var ,g!data :snd_seq_ev_note)
+  `(with-midi-event (,var ,g!data (ev-key-int ,type))
      (let ((,g!channel ,channel)
            (,g!note ,note)
            (,g!velocity ,velocity)
@@ -143,7 +143,7 @@
                              (:pointer velocity)
                              (:pointer off_velocity)
                              (:pointer duration))
-                            ,g!data '(:struct snd_seq_ev_ctrl_t))
+                            ,g!data (:struct snd_seq_ev_note_t))
          (setf (mem-ref channel :uchar) ,g!channel)
          (setf (mem-ref note :uchar) ,g!note)
          (setf (mem-ref velocity :uchar) ,g!velocity)
@@ -152,28 +152,18 @@
          ))
      ,@body))
 
-(defmacro! with-midi-queue-event ((var queue unused param) &body body)
-  `(with-midi-event (,var ,g!data :snd_seq_ev_queue_control)
+(defmacro! with-midi-queue-event ((var type queue unused param) &body body)
+  `(with-midi-event (,var ,g!data (ev-key-int ,type))
      (let ((,g!queue ,queue)
            (,g!unused ,unused)
            (,g!param ,param))
        (with-foreign-slots (((:pointer queue)
                              (:pointer unused)
                              (:pointer param))
-                            ,g!data '(:struct snd_seq_ev_queue_control_t))
+                            ,g!data (:struct snd_seq_ev_queue_control_t))
          (setf (mem-ref queue :uchar) ,g!queue)
          (setf (mem-ref unused :pointer) ,g!unused)
          (setf (mem-ref param :pointer) ,g!param)))
-     ,@body))
-
-(defmacro with-snd_seq_ev_queue_control ((var queue unused param)
-                                &body body)
-  `(let ((,var (convert-to-foreign (list
-                                    'queue ,queue
-                                    'unused ,unused
-                                    'param ,param
-                                    )
-                                   '(:struct snd_seq_ev_queue_control_t))))
      ,@body))
 
 (defun send-midi (*seq my-port event)
@@ -193,17 +183,17 @@
 (defun send-note (velocity note channel note-type
                   *seq my-port)
   (event-type-assert note-type :SND_SEQ_EVENT_NOTE :SND_SEQ_EVENT_CONTROLLER)
-  (with-midi-note-event (event channel note velocity 0 0)
+  (with-midi-note-event (event note-type channel note velocity 0 0)
     (send-midi *seq my-port event)))
 
 (defun send-ctrl (channel param value ctrl-type
                   *seq my-port)
   (event-type-assert ctrl-type :SND_SEQ_EVENT_CONTROLLER :SND_SEQ_EVENT_SONGPOS)
-  (with-midi-ctrl-event (event channel param value)
+  (with-midi-ctrl-event (event ctrl-type channel param value)
     (send-midi *seq my-port event)))
 
 (defun send-queue-ctrl (queue queue-ctrl-type
                         *seq my-port)
   (event-type-assert queue-ctrl-type :SND_SEQ_EVENT_START :SND_SEQ_EVENT_TUNE_REQUEST)
-  (with-midi-queue-event (event queue (null-pointer) (null-pointer))
+  (with-midi-queue-event (event queue-ctrl-type queue (null-pointer) (null-pointer))
     (send-midi *seq my-port event)))
