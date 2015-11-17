@@ -47,10 +47,9 @@
   (setf **seq (open-seq "CL"))
   (setf *seq* (mem-ref **seq :pointer))
   (setf *my-ports*
-        (loop for i from 0 to 1
-           collect (open-port (format nil "port~A" i)
-                              *seq*
-                              :output))))
+	(list (open-port (format nil "Output")
+			 *seq*
+			 :output))))
 
 (defun stop-writer ()
   (assert **seq)
@@ -65,23 +64,24 @@
 (defun start-writer-thread ()
   (assert (null *writer-thread*))
   (setf *writer-thread*
-        (bt:make-thread (lambda ()
-			  (declare (optimize (debug 3)))
-                          (with-seq (thread-seq :name "CL")
-                            (unwind-protect
-                                 (progn
-                                   (setf *my-ports* (list (open-port "port0" thread-seq :output)))
-                                   (handler-case
-                                       (loop
-					  (let ((message (? *writer-ichan*)))
-					    (restart-case
-						(%send-event message
-							     (car *my-ports*)
-							     thread-seq)
-					      (carry-on-writing ()))))
-                                     (stop-thread ())))
-                              (setf *writer-thread* nil))))
-                        :name "midihelper writer")))
+        (bt:make-thread
+	 (lambda ()
+	   (declare (optimize (debug 3)))
+	   (with-seq (thread-seq :name "CL")
+	     (unwind-protect
+		  (progn
+		    (let ((port (open-port "port0" thread-seq :output)))
+		      (handler-case
+			  (loop
+			     (let ((message (? *writer-ichan*)))
+			       (restart-case
+				   (%send-event message
+						port
+						thread-seq)
+				 (carry-on-writing ()))))
+			(stop-thread ()))))
+		    (setf *writer-thread* nil))))
+	   :name "midihelper writer")))
 
 (defun stop-writer-thread ()
   (bt:interrupt-thread
