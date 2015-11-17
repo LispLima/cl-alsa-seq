@@ -1,7 +1,7 @@
 (in-package :midiloops)
 
 (defparameter +quneo-chan+ 15)
-(defparameter +quneo-led-chan+ 0)
+(defparameter +quneo-led-chan+ 15)
 
 (defmacro quneo-note (note &body body)
   `((plist :EVENT-TYPE :SND_SEQ_EVENT_NOTEON
@@ -83,3 +83,10 @@
   (apply #'append
          (mapcar #'quneo-map-event
                  in-events)));;monoidal space for in-events list-list
+
+;; transport buttons: 33, 34, 35
+;; left hand side bank buttons:
+;; 36, 37
+;; 38, 39
+;; 40, 41
+;; 42, 43

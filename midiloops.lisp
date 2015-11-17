@@ -141,9 +141,28 @@
     (setf tog (and (not tog)
                    :repeat))))
 
+(defun redraw-loop-status ()
+  (loop for i below 4
+     do (if (= 0 (fill-pointer (getf (aref *loop-stack* i)
+				     :seq)))
+	    (send-event (ev-noteoff 15 (+ (* i 2)
+					  37)
+				    127))
+	    (send-event (ev-noteon 15 (+ (* i 2)
+					 37)
+				   127)))
+       (send-event (ev-noteoff 15 (+ (* i 2)
+				     36)
+			       127)))
+  (send-event (ev-noteon 15 (+ (* (position *loop-stack* *loop-stacks*)
+				  2)
+			       36)
+			 127)))
+
 (defun loop-group (group-id)
   (setf *loop-stack*
-        (aref *loop-stacks* (- group-id 1))))
+        (aref *loop-stacks* (- group-id 1)))
+  (redraw-loop-status))
 
 (defun loop-overdub (mloop)
   (symbol-macrolet ((rec (getf mloop :rec)))
@@ -188,21 +207,25 @@
          (mapcar #'send-event
                  (aref (getf mloop :seq)
                        (- i off)))))
-  (print mloop))
+  (print mloop)
+  (redraw-loop-status))
 
 (defun loop-continue (mloop)
-  (setf (getf mloop :play) :repeat))
+  (setf (getf mloop :play) :repeat)
+  (redraw-loop-status))
 
 (defun loop-push-extend (mloop)
   (setf (getf mloop :play) :push-extend)
-  (print mloop))
+  (print mloop)
+  (redraw-loop-status))
 
 (defun loop-stop (mloop)
   (setf (getf mloop :play) nil)
   (setf (getf mloop :rec) nil)
   (drain-hanging-rec-tones mloop)
   (drain-hanging-play-tones mloop)
-  (print mloop))
+  (print mloop)
+  (redraw-loop-status))
 
 (defun loop-erase (mloop)
   (let ((seq (getf mloop :seq)))
@@ -213,7 +236,8 @@
           0))
   (setf (getf mloop :rec-tones) nil)
   (setf (getf mloop :play-tones) nil)
-  (print mloop))
+  (print mloop)
+  (redraw-loop-status))
 
 (defparameter +look-back-intvl-divisor+ 5);;Anything under a quintuplet is considered 'in time'
 
@@ -263,7 +287,8 @@
       ((plist :play (or :push-extend
                         nil))
        (setf play :repeat))))
-    (print mloop))
+  (print mloop)
+  (redraw-loop-status))
 
 (defun note-pop (tones note channel)
   (if tones
