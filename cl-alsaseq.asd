@@ -1,19 +1,23 @@
-;;;; cl-alsaseq.asd
-
-(asdf:defsystem cl-alsaseq
+(defsystem cl-alsaseq
   :serial t
   :description "CL bindings to alsa midi sequencer"
   :author "Rick Venn <richard.venn@gmail.com>"
   :license "GPL"
-  :depends-on (#:cffi #:calispel #:optima #:let-over-lambda)
+  :depends-on ("cffi"
+               "calispel"
+               "optima"
+               "let-over-lambda")
+  :serial t
   :components ((:file "package")
-               (:file "driver/bindings")
-               (:file "driver/event-lookup")
-               (:file "driver/cl-alsaseq")
-               (:file "midihelper/reader")
-               (:file "midihelper/writer")
-               (:file "midihelper/clock")
-               (:file "midihelper/midihelper")
+               (:module "driver"
+                :components ((:file "bindings")
+                             (:file "event-lookup")
+                             (:file "cl-alsaseq")))
+               (:module "midihelper"
+                :components ((:file "reader")
+                             (:file "writer")
+                             (:file "clock")
+                             (:file "midihelper")))
                (:file "easy-api")
                (:file "readtable")
                (:file "midiloops")))
