@@ -1,4 +1,4 @@
-(in-package :midiloops)
+(in-package #:midiloops)
 
 (defparameter +quneo-chan+ 15)
 (defparameter +quneo-led-chan+ 15)

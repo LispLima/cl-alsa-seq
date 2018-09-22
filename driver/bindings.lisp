@@ -4,9 +4,7 @@
 ;;; Do not make changes to this file unless you know what you are doing--modify
 ;;; the SWIG interface file instead.
 
-(in-package :cl-alsaseq)
-
-
+(in-package #:cl-alsaseq)
 
 (cl:defconstant _SYS_POLL_H 1)
 

@@ -1,4 +1,5 @@
-(in-package :cl-alsaseq)
+(in-package #:cl-alsaseq)
+
 (defmacro lookup-table ()
   `(list
    :SND_SEQ_EVENT_SYSTEM nil

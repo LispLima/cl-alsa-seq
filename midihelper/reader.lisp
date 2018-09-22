@@ -1,11 +1,10 @@
-(in-package :midihelper)
+(in-package #:midihelper)
 
 (defun make-nonblock-buf-channel (&optional (queue 100))
   (make-instance 'calispel:channel
                  :buffer (MAKE-INSTANCE
                           'jpl-queues:LOSSY-BOUNDED-FIFO-QUEUE
-                          :CAPACITY queue)
-                 ))
+                          :CAPACITY queue)))
 
 (defun drain-channel (chan)
   (loop (pri-alt ((? chan res)

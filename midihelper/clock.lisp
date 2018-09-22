@@ -1,4 +1,4 @@
-(in-package :midihelper)
+(in-package #:midihelper)
 
 (defvar *clock-ctrl-chan* (make-nonblock-buf-channel))
 

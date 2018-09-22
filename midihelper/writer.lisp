@@ -1,4 +1,4 @@
-(in-package :midihelper)
+(in-package #:midihelper)
 
 (defvar *seq* nil);;sequence struct
 (defvar **seq nil);;pointer to sequence struct (for memory deallocation)

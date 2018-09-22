@@ -1,4 +1,5 @@
-(in-package :midihelper)
+(in-package #:midihelper)
+
 (defun inspect-midihelper ()
   (list '*reader-thread* *reader-thread*
         '*clock-thread* *clock-thread*

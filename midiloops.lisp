@@ -1,4 +1,4 @@
-(in-package :midiloops)
+(in-package #:midiloops)
 
 (defconstant +n-loops+ 4)
 (defconstant +default-loop-res+ 96)
