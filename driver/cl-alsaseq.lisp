@@ -34,13 +34,17 @@
   "close port <port> on alsa sequencer object <seq>"
   (snd_seq_delete_simple_port seq port))
 
-(defmacro! with-seq ((seq &key (name "Common Lisp")) &body body)
-  "open an alsa sequencer connection <seq>, named <name> with lexical scope in <body>"
-  `(let* ((,g!seq (open-seq ,name))
-          (,seq (mem-ref ,g!seq :pointer)))
-     (unwind-protect
-          (progn ,@body)
-       (close-seq ,g!seq))))
+(defmacro with-seq ((seq &key (name "Common Lisp")) &body body)
+  "Open an alsa sequencer connection, SEQ, named NAME in BODY."
+  (let ((seq-device (gensym)))
+    `(let (,seq-device)
+       (unwind-protect
+            (progn
+              (setf ,seq-device (open-seq ,name))
+              (let ((,seq (mem-ref ,seq-device :pointer)))
+                ,@body))
+         (when ,seq-device
+           (close-seq ,seq-device))))))
 
 (defun ev-key-int (key)
   "convert alsa event-type keyword to cffi int"
