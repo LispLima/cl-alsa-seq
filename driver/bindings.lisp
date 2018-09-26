@@ -6,29 +6,6 @@
 
 (in-package #:cl-alsaseq)
 
-(cl:defconstant _SYS_POLL_H 1)
-
-(cffi:defcstruct pollfd
-	(fd :int)
-	(events :short)
-	(revents :short))
-
-(cffi:defcfun ("poll" poll) :int
-  (__fds :pointer)
-  (__nfds :unsigned-long)
-  (__timeout :int))
-
-(cl:defconstant POLLIN #x001)
-
-(cl:defconstant POLLPRI #x002)
-
-(cl:defconstant POLLOUT #x004)
-
-(cl:defconstant POLLERR #x008)
-
-(cl:defconstant POLLHUP #x010)
-
-(cl:defconstant POLLNVAL #x020)
 
 (cffi:defcenum snd_seq_event_type
   (:SND_SEQ_EVENT_SYSTEM #.0)
