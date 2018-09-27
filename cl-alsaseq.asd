@@ -9,6 +9,9 @@
                "let-over-lambda")
   :serial t
   :components ((:file "package")
+               (:module "bindings"
+                :components ((:file "seq-event")
+                             (:file "seq")))
                (:module "driver"
                 :components ((:file "bindings")
                              (:file "event-lookup")
